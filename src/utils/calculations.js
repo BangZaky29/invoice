@@ -28,10 +28,7 @@ export const calculateTotalDiskon = (products) => {
   }, 0);
 };
 
-export const calculatePajak = (products, diskonTambahan = 0) => {
-  let subtotal = calculateSubtotal(products);
-  subtotal -= parseFloat(diskonTambahan) || 0;
-  
+export const calculatePajak = (products) => {
   return products.reduce((total, product) => {
     const pajak = parseFloat(product.pajak) || 0;
     const harga = parseFloat(product.harga) || 0;
@@ -48,7 +45,7 @@ export const calculatePajak = (products, diskonTambahan = 0) => {
 
 export const calculateTotal = (products, diskonTambahan = 0) => {
   const subtotal = calculateSubtotal(products);
-  const pajak = calculatePajak(products, diskonTambahan);
+  const pajak = calculatePajak(products);
   const diskon = parseFloat(diskonTambahan) || 0;
   
   return subtotal - diskon + pajak;
