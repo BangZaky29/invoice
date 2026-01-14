@@ -1,3 +1,205 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  font-family: 'Inter', sans-serif;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: linear-gradient(135deg, #F8F9FA 0%, #E8F0FF 100%);
+}
+
+/* Invoice Preview Styles */
+.invoice-container {
+  width: 210mm;
+  height: auto;
+  background: white;
+  padding: 20mm;
+  box-shadow: 0 2px 8px rgba(79, 99, 219, 0.08);
+  border-radius: 8px;
+  margin: 0 auto;
+  font-size: 10pt;
+  line-height: 1.6;
+  color: #2c3e50;
+}
+
+.invoice-header {
+  margin-bottom: 20px;
+  border-bottom: 2px solid #E8F0FF;
+  padding-bottom: 15px;
+}
+
+.invoice-title {
+  font-size: 28pt;
+  font-weight: 700;
+  color: #4F63DB;
+  letter-spacing: -0.5px;
+}
+
+.invoice-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 20px 0;
+}
+
+.invoice-table th {
+  background: linear-gradient(135deg, #E8F0FF 0%, #B3D9FF 100%);
+  padding: 12px;
+  text-align: left;
+  font-weight: 600;
+  color: #4F63DB;
+  border-bottom: 1px solid #B3D9FF;
+}
+
+.invoice-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #E0E3E8;
+}
+
+.invoice-table tr:last-child td {
+  border-bottom: 2px solid #4F63DB;
+}
+
+.invoice-footer {
+  margin-top: 30px;
+  display: flex;
+  justify-content: space-between; /* kiri-kanan */
+  align-items: flex-start;        /* atas-alas item sejajar */
+  padding-top: 20px;
+  gap: 20px;                      /* jarak antar kolom */
+}
+
+.invoice-footer .invoice-canvas {
+  flex: 1;                        /* canvas mengambil ruang yang tersisa */
+}
+
+.invoice-footer .invoice-signature {
+  display: flex;
+  flex-direction: column;         /* susun signature dan stamp vertikal */
+  align-items: center;            /* tengah secara horizontal */
+}
+
+.invoice-body {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px; /* jarak antara canvas dan signature */
+}
+
+.invoice-canvas {
+  flex: 1;
+  text-align: right;
+  font-size: 10pt;
+  color: #2c3e50;
+}
+
+
+.invoice-signature {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 160px;
+  text-align: center;
+}
+
+
+/* Print Styles */
+@media print {
+  body {
+    background: white;
+    margin: 0;
+    padding: 0;
+  }
+
+  #root > * {
+    display: none !important;
+  }
+
+  .invoice-print-only {
+    display: block !important;
+  }
+
+  .invoice-container {
+    width: 100%;
+    height: auto;
+    padding: 20mm;
+    margin: 0;
+    box-shadow: none;
+    page-break-after: avoid;
+  }
+
+  .invoice-table {
+    page-break-inside: avoid;
+  }
+}
+
+/* Floating Action Button */
+.fab-button {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #4F63DB 0%, #6B7FFF 100%);
+  color: white;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(79, 99, 219, 0.3);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 40;
+}
+
+.fab-button:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 16px rgba(79, 99, 219, 0.4);
+}
+
+.fab-button:active {
+  transform: scale(0.95);
+}
+
+.fab-button.active {
+  background: linear-gradient(135deg, #6B7FFF 0%, #4F63DB 100%);
+}
+
+/* Smooth transitions */
+.transition-smooth {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #F8F9FA;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #B3D9FF;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #4F63DB;
+}

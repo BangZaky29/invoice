@@ -845,3 +845,120 @@
     width: 100%;
   }
 }
+
+/* Signature Wrapper */
+.signature-wrapper {
+  width: 100%;
+}
+
+.signature-canvas {
+  width: 100% !important;
+  height: 200px !important;
+  border: 1.5px dashed #b4c6ff;
+  border-radius: 8px;
+  background: #fafbff;
+  cursor: crosshair;
+}
+
+.signature-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+/* Invoice Footer Signature */
+.invoice-signature {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-top: 2rem;
+  page-break-inside: avoid;
+}
+
+.signature-date {
+  flex: 1;
+}
+
+.signature-box {
+  flex: 1;
+  text-align: center;
+  position: relative;
+  min-height: 150px;
+}
+
+.signature-role {
+  font-weight: 600;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+  font-size: 0.95rem;
+}
+
+.signature-media {
+  position: relative;
+  height: 100px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.signature-ttd {
+  max-height: 80px;
+  max-width: 200px;
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  object-fit: contain;
+}
+
+.signature-stamp {
+  max-height: 100px;
+  max-width: 100px;
+  opacity: 0.35;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1;
+  object-fit: contain;
+}
+
+.signature-line {
+  margin: 8px auto;
+  font-size: 1.2rem;
+  letter-spacing: 2px;
+  color: #333;
+}
+
+.signature-name {
+  margin-top: 8px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #111;
+}
+
+/* Print Specific */
+@media print {
+  .invoice-signature {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  
+  .signature-box {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  
+  .signature-media {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  
+  .signature-ttd,
+  .signature-stamp {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
