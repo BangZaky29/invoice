@@ -92,9 +92,8 @@ function App() {
       
       <main className="flex-1 overflow-hidden">
         {isMobile ? (
-          // Mobile: Toggle view
-          <>
-            {activeView === 'form' ? (
+          <div className="relative">
+            {activeView === 'form' && (
               <InputForm
                 invoice={invoice}
                 onUpdate={updateInvoice}
@@ -102,7 +101,9 @@ function App() {
                 onUpdateProduct={updateProduct}
                 onRemoveProduct={removeProduct}
               />
-            ) : (
+            )}
+
+            {activeView === 'preview' && (
               <div className="h-screen overflow-y-auto bg-gradient-soft p-4">
                 <InvoicePreview
                   invoice={invoice}
@@ -110,13 +111,14 @@ function App() {
                 />
               </div>
             )}
+
             <FloatingActionButton
               activeView={activeView}
               onViewChange={setActiveView}
             />
-          </>
+          </div>
         ) : (
-          // Desktop: Side-by-side
+          // Desktop
           <div className="flex h-full gap-4 p-4">
             <div className="w-[45%] overflow-y-auto">
               <InputForm
@@ -135,6 +137,7 @@ function App() {
             </div>
           </div>
         )}
+
       </main>
     </div>
   )

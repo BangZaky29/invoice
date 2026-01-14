@@ -148,9 +148,7 @@ body {
 
 /* Floating Action Button */
 .fab-button {
-  position: fixed;
-  bottom: 30px;
-  right: 30px;
+  /* posisi handled oleh wrapper div.fixed */
   width: 56px;
   height: 56px;
   border-radius: 50%;
@@ -163,7 +161,7 @@ body {
   justify-content: center;
   box-shadow: 0 4px 12px rgba(79, 99, 219, 0.3);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  z-index: 40;
+  /* z-index diatur oleh wrapper */
 }
 
 .fab-button:hover {
@@ -178,6 +176,7 @@ body {
 .fab-button.active {
   background: linear-gradient(135deg, #6B7FFF 0%, #4F63DB 100%);
 }
+
 
 /* Smooth transitions */
 .transition-smooth {

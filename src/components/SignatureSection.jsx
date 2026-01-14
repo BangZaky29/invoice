@@ -1,23 +1,21 @@
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect } from 'react'
 
 export default function SignatureSection({
   signature,
   stamp,
   signatureName,
+  signaturePosition,
   onSignatureChange,
   onStampChange,
   onNameChange,
   onPositionChange,
-  signaturePosition,
 }) {
   const canvasRef = useRef(null)
   const [isDrawing, setIsDrawing] = useState(false)
 
-  // Menghitung posisi pointer yang benar
+  // Hitung posisi pointer di canvas
   const getPointerPos = (e) => {
     const canvas = canvasRef.current
-    if (!canvas) return { x: 0, y: 0 }
-
     const rect = canvas.getBoundingClientRect()
     let clientX, clientY
 
@@ -29,55 +27,42 @@ export default function SignatureSection({
       clientY = e.clientY
     }
 
-    // Sesuaikan dengan scaling canvas
-    const scaleX = canvas.width / rect.width
-    const scaleY = canvas.height / rect.height
-
-    const x = (clientX - rect.left) * scaleX
-    const y = (clientY - rect.top) * scaleY
-
-    return { x, y }
+    return {
+      x: (clientX - rect.left) * (canvas.width / rect.width),
+      y: (clientY - rect.top) * (canvas.height / rect.height),
+    }
   }
 
+  // Start drawing
   const startDrawing = (e) => {
-  const canvas = canvasRef.current
-  if (!canvas) return
-  const ctx = canvas.getContext('2d')
-  const { x, y } = getPointerPos(e)
-  ctx.beginPath()
-  ctx.moveTo(x, y)
-  setIsDrawing(true)
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    const { x, y } = getPointerPos(e)
+    ctx.beginPath()
+    ctx.moveTo(x, y)
+    setIsDrawing(true)
+  }
 
-  // 🔒 Disable scroll sementara
-  document.body.style.touchAction = 'none'
-
-  e.preventDefault()
-}
-
+  // Draw
   const draw = (e) => {
     if (!isDrawing || !canvasRef.current) return
-    const canvas = canvasRef.current
-    const ctx = canvas.getContext('2d')
+    const ctx = canvasRef.current.getContext('2d')
     const { x, y } = getPointerPos(e)
     ctx.lineTo(x, y)
     ctx.stroke()
-    e.preventDefault()
   }
 
-  const stopDrawing = (e) => {
-  if (!canvasRef.current) return
-  const canvas = canvasRef.current
-  const ctx = canvas.getContext('2d')
-  ctx.closePath()
-  setIsDrawing(false)
-  onSignatureChange(canvas.toDataURL())
+  // Stop drawing
+  const stopDrawing = () => {
+    if (!canvasRef.current) return
+    const ctx = canvasRef.current.getContext('2d')
+    ctx.closePath()
+    setIsDrawing(false)
+    onSignatureChange(canvasRef.current.toDataURL())
+  }
 
-  // 🔓 Enable scroll kembali
-  document.body.style.touchAction = 'auto'
-
-  e?.preventDefault()
-}
-
+  // Clear signature
   const clearSignature = () => {
     const canvas = canvasRef.current
     if (!canvas) return
@@ -86,25 +71,59 @@ export default function SignatureSection({
     onSignatureChange(null)
   }
 
+  // Upload stamp
   const handleStampUpload = (e) => {
     const file = e.target.files[0]
-    if (file) {
-      const reader = new FileReader()
-      reader.onload = (event) => {
-        onStampChange(event.target.result)
-      }
-      reader.readAsDataURL(file)
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      onStampChange(event.target.result)
     }
+    reader.readAsDataURL(file)
   }
 
-  const initializeCanvas = (el) => {
-    if (!el) return
-    const ctx = el.getContext('2d')
+  // Initialize canvas
+  const initializeCanvas = (canvas) => {
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
     ctx.strokeStyle = '#4F63DB'
     ctx.lineWidth = 2
     ctx.lineCap = 'round'
     ctx.lineJoin = 'round'
   }
+
+  // Setup touch listeners untuk mobile supaya scroll tidak ikut bergerak
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+
+    const touchMoveHandler = (e) => {
+      if (isDrawing) {
+        draw(e)
+        e.preventDefault() // wajib supaya scroll tidak ikut
+      }
+    }
+
+    const touchStartHandler = (e) => {
+      startDrawing(e)
+      e.preventDefault()
+    }
+
+    const touchEndHandler = (e) => {
+      stopDrawing()
+      e.preventDefault()
+    }
+
+    canvas.addEventListener('touchstart', touchStartHandler, { passive: false })
+    canvas.addEventListener('touchmove', touchMoveHandler, { passive: false })
+    canvas.addEventListener('touchend', touchEndHandler, { passive: false })
+
+    return () => {
+      canvas.removeEventListener('touchstart', touchStartHandler)
+      canvas.removeEventListener('touchmove', touchMoveHandler)
+      canvas.removeEventListener('touchend', touchEndHandler)
+    }
+  }, [isDrawing])
 
   return (
     <div className="space-y-6">
@@ -116,16 +135,17 @@ export default function SignatureSection({
             canvasRef.current = el
             initializeCanvas(el)
           }}
-          width={400} // ukuran internal canvas
+          width={400}
           height={150}
-          style={{ width: '100%', height: '150px' }} // ukuran tampilan
+          style={{
+            width: '100%',
+            height: '150px',
+            touchAction: 'none',
+          }}
           onMouseDown={startDrawing}
           onMouseMove={draw}
           onMouseUp={stopDrawing}
           onMouseLeave={stopDrawing}
-          onTouchStart={startDrawing}
-          onTouchMove={draw}
-          onTouchEnd={stopDrawing}
           className="border-2 border-dashed border-pastel-blue rounded-lg bg-white cursor-crosshair"
         />
         <button
@@ -141,28 +161,28 @@ export default function SignatureSection({
         )}
       </div>
 
-      {/* Signature Name */}
-      {/* Signature Position / Jabatan */}
-        <div>
+      {/* Signature Position */}
+      <div>
         <label className="text-sm font-semibold text-gray-900 mb-2 block">
-            Jabatan Penandatangan
+          Jabatan Penandatangan
         </label>
         <input
-            type="text"
-            value={signaturePosition || ''}
-            onChange={(e) => onPositionChange(e.target.value)}
-            placeholder="Contoh: Manager / Direktur"
-            className="w-full px-4 py-2 border border-border-gray rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-accent-blue"
+          type="text"
+          value={signaturePosition || ''}
+          onChange={(e) => onPositionChange(e.target.value)}
+          placeholder="Contoh: Manager / Direktur"
+          className="w-full px-4 py-2 border border-border-gray rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-accent-blue"
         />
-        </div>
+      </div>
 
+      {/* Signature Name */}
       <div>
         <label className="text-sm font-semibold text-gray-900 mb-2 block">
           Nama Penandatangan
         </label>
         <input
           type="text"
-          value={signatureName}
+          value={signatureName || ''}
           onChange={(e) => onNameChange(e.target.value)}
           placeholder="Nama Lengkap"
           className="w-full px-4 py-2 border border-border-gray rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-accent-blue"
@@ -186,7 +206,7 @@ export default function SignatureSection({
         </label>
         {stamp && (
           <div className="mt-3 p-3 bg-light-gray rounded-lg">
-            <img src={stamp} alt="Stamp" className="h-3 2 w-auto mx-auto" />
+            <img src={stamp} alt="Stamp" className="h-20 w-auto mx-auto" />
             <button
               onClick={() => onStampChange(null)}
               className="mt-2 w-full py-2 px-4 text-red-600 text-sm font-medium hover:bg-red-50 rounded-lg transition-colors"
