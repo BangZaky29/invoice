@@ -40,15 +40,19 @@ export default function SignatureSection({
   }
 
   const startDrawing = (e) => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const ctx = canvas.getContext('2d')
-    const { x, y } = getPointerPos(e)
-    ctx.beginPath()
-    ctx.moveTo(x, y)
-    setIsDrawing(true)
-    e.preventDefault()
-  }
+  const canvas = canvasRef.current
+  if (!canvas) return
+  const ctx = canvas.getContext('2d')
+  const { x, y } = getPointerPos(e)
+  ctx.beginPath()
+  ctx.moveTo(x, y)
+  setIsDrawing(true)
+
+  // 🔒 Disable scroll sementara
+  document.body.style.touchAction = 'none'
+
+  e.preventDefault()
+}
 
   const draw = (e) => {
     if (!isDrawing || !canvasRef.current) return
@@ -61,14 +65,18 @@ export default function SignatureSection({
   }
 
   const stopDrawing = (e) => {
-    if (!canvasRef.current) return
-    const canvas = canvasRef.current
-    const ctx = canvas.getContext('2d')
-    ctx.closePath()
-    setIsDrawing(false)
-    onSignatureChange(canvas.toDataURL())
-    e?.preventDefault()
-  }
+  if (!canvasRef.current) return
+  const canvas = canvasRef.current
+  const ctx = canvas.getContext('2d')
+  ctx.closePath()
+  setIsDrawing(false)
+  onSignatureChange(canvas.toDataURL())
+
+  // 🔓 Enable scroll kembali
+  document.body.style.touchAction = 'auto'
+
+  e?.preventDefault()
+}
 
   const clearSignature = () => {
     const canvas = canvasRef.current
