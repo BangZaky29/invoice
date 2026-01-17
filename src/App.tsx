@@ -71,6 +71,7 @@ const App: React.FC = () => {
              </span>
              <span className="hidden lg:inline">Dashboard</span>
            </h2>
+           {/* Desktop / Form View Button */}
            <DownloadPDFButton 
              targetRef={previewRef} 
              fileName={`Invoice-${invoiceData.invoiceNumber.replace(/\//g, '-')}`} 
@@ -88,7 +89,18 @@ const App: React.FC = () => {
 
           {/* Right Column: Preview */}
           {/* UPDATE: Removed padding on mobile container */}
-          <div className={`${mobileView === 'preview' ? 'block' : 'hidden'} lg:block lg:col-span-7`}>
+          <div className={`${mobileView === 'preview' ? 'block' : 'hidden'} lg:block lg:col-span-7 relative`}>
+             
+             {/* NEW: Floating Download Button for Mobile Preview */}
+             <div className="lg:hidden fixed bottom-6 left-6 z-40 animate-in slide-in-from-bottom-4 fade-in duration-300">
+                <DownloadPDFButton 
+                  targetRef={previewRef} 
+                  fileName={`Invoice-${invoiceData.invoiceNumber.replace(/\//g, '-')}`} 
+                  onSuccess={handleDownloadSuccess}
+                  variant="fab"
+                />
+             </div>
+
              <div className="lg:sticky lg:top-24">
                 <InvoicePreview data={invoiceData} previewRef={previewRef} />
              </div>
