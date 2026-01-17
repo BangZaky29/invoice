@@ -12,10 +12,9 @@ const PADDING = 40; // Top/Bottom padding
 const CONTENT_HEIGHT = A4_HEIGHT - (PADDING * 2); // Usable height ~1043px
 
 // Estimated heights for layout logic
-// Reduced heights slightly to fit more content
-const HEADER_HEIGHT = 300; // Was 320
-const TABLE_HEADER_HEIGHT = 45; // Was 50
-const ROW_HEIGHT = 55; // Reduced from 65 to pack items tighter
+const HEADER_HEIGHT = 300; 
+const TABLE_HEADER_HEIGHT = 45; 
+const ROW_HEIGHT = 55; 
 const FOOTER_HEIGHT = 450; 
 
 const InvoicePreview: React.FC<InvoicePreviewProps> = ({ data, previewRef }) => {
@@ -26,10 +25,16 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({ data, previewRef }) => 
   useEffect(() => {
     const calculateScale = () => {
       let availableWidth = containerRef.current?.offsetWidth || 0;
+      
+      // Fallback if offsetWidth is 0 (hidden tab)
       if (availableWidth === 0) {
-        availableWidth = window.innerWidth - 32;
+        // Use window width minus minimal padding for mobile
+        availableWidth = window.innerWidth < 1024 ? window.innerWidth : window.innerWidth - 64;
       }
+      
       const a4Width = 794;
+      
+      // On mobile, we allow it to take full width with minimal margin
       if (availableWidth < a4Width) {
         setScale(Math.max(availableWidth / a4Width, 0.3)); 
       } else {
@@ -49,46 +54,32 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({ data, previewRef }) => 
   // Pagination Logic
   const pages = useMemo(() => {
     const _pages: { items: InvoiceItem[], type: 'first' | 'middle' | 'last' | 'single' }[] = [];
-    
-    // Clone items to process
     let remainingItems = [...data.items];
     
-    // If no items, show at least one page
     if (remainingItems.length === 0) {
       return [{ items: [], type: 'single' }];
     }
 
-    // Calculate Capacity for First Page
     let firstPageAvailableHeight = CONTENT_HEIGHT - HEADER_HEIGHT - TABLE_HEADER_HEIGHT;
-    
     let currentPageItems: InvoiceItem[] = [];
     let currentHeight = 0;
     
     // --- PAGE 1 Processing ---
     while (remainingItems.length > 0) {
       const item = remainingItems[0];
-      
-      // Heuristic: Check rough height. 
-      // Note: This is an estimation. If text is huge, it might overflow.
-      // Ideally we would measure DOM, but that's complex in React render cycle.
-      if (currentHeight + ROW_HEIGHT > firstPageAvailableHeight) {
-        break; // Page 1 is full
-      }
-      
+      if (currentHeight + ROW_HEIGHT > firstPageAvailableHeight) break;
       currentPageItems.push(item);
       currentHeight += ROW_HEIGHT;
       remainingItems.shift();
     }
 
-    // Determine Page 1 Type
     if (remainingItems.length === 0) {
-      // Check Footer
       if (currentHeight + FOOTER_HEIGHT <= firstPageAvailableHeight) {
         _pages.push({ items: currentPageItems, type: 'single' });
         return _pages;
       } else {
         _pages.push({ items: currentPageItems, type: 'first' });
-        _pages.push({ items: [], type: 'last' }); // Page 2 contains footer
+        _pages.push({ items: [], type: 'last' }); 
         return _pages;
       }
     } else {
@@ -99,16 +90,10 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({ data, previewRef }) => 
     while (remainingItems.length > 0) {
       currentPageItems = [];
       currentHeight = 0;
-      
-      // On subsequent pages, we DON'T show the Table Header anymore (per user request),
-      // so we have more space: CONTENT_HEIGHT.
-      // If we did show header, we would subtract TABLE_HEADER_HEIGHT.
       const pageAvailableHeight = CONTENT_HEIGHT; 
 
       while (remainingItems.length > 0) {
-        if (currentHeight + ROW_HEIGHT > pageAvailableHeight) {
-          break; // Page full
-        }
+        if (currentHeight + ROW_HEIGHT > pageAvailableHeight) break;
         currentPageItems.push(remainingItems[0]);
         currentHeight += ROW_HEIGHT;
         remainingItems.shift();
@@ -125,9 +110,7 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({ data, previewRef }) => 
         _pages.push({ items: currentPageItems, type: 'middle' });
       }
     }
-
     return _pages;
-
   }, [data.items]);
 
   // Calculations
@@ -146,10 +129,10 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({ data, previewRef }) => 
     }).format(val);
   };
 
-  // --- Components ---
+  // --- Subcomponents ---
 
   const PageHeader = () => (
-    <div className="flex justify-between items-start mb-6 relative z-10 h-[210px]"> {/* Reduced margin and fixed height */}
+    <div className="flex justify-between items-start mb-6 relative z-10 h-[210px]"> 
       <div>
         <h1 className="text-3xl font-bold mb-2" style={{ color: data.primaryColor }}>{data.companyName || 'Nama Perusahaan'}</h1>
         <div className="text-sm text-gray-500 whitespace-pre-line max-w-[300px] leading-tight">
@@ -172,7 +155,7 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({ data, previewRef }) => 
   );
 
   const ClientInfo = () => (
-    <div className="flex justify-between mb-6 relative z-10 h-[90px]"> {/* Reduced margin/height */}
+    <div className="flex justify-between mb-6 relative z-10 h-[90px]">
         <div className="w-1/2">
           <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 border-b pb-1" style={{ borderColor: data.primaryColor }}>
             Tagihan Untuk
@@ -200,9 +183,8 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({ data, previewRef }) => 
   );
 
   const ItemRow = ({ item }: { item: InvoiceItem }) => (
-    <div className="flex text-sm border-b border-gray-100 items-start hover:bg-gray-50/50 transition-colors py-1.5"> {/* Reduced padding py-1.5 */}
+    <div className="flex text-sm border-b border-gray-100 items-start hover:bg-gray-50/50 transition-colors py-1.5">
       <div className="w-[50%] px-4">
-        {/* Leading-tight for tighter text wrapping */}
         <div className="font-medium text-gray-800 break-words leading-tight">{item.description}</div>
         {item.notes && <div className="text-xs text-gray-500 mt-0.5 leading-tight">{item.notes}</div>}
       </div>
@@ -215,7 +197,7 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({ data, previewRef }) => 
   );
 
   const InvoiceFooter = () => (
-    <div className="mt-auto pt-4"> {/* Reduced padding-top */}
+    <div className="mt-auto pt-4">
       {/* Totals */}
       <div className="flex justify-end mb-6 relative z-10">
           <div className="w-1/2 space-y-2">
@@ -305,7 +287,8 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({ data, previewRef }) => 
     <div 
       id="preview-container"
       ref={containerRef}
-      className="w-full bg-gray-100 rounded-xl border border-gray-200 p-2 md:p-6 flex flex-col items-center overflow-auto min-h-[500px]"
+      // UPDATE: Removed bg-gray-100 and padding on mobile to remove "excessive container"
+      className="w-full md:bg-gray-100 md:rounded-xl md:border md:border-gray-200 p-0 md:p-6 flex flex-col items-center overflow-hidden md:overflow-auto min-h-[500px]"
     >
       <div 
         style={{ 
@@ -313,7 +296,7 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({ data, previewRef }) => 
           transformOrigin: 'top center', 
           width: '794px', 
         }}
-        className="transition-transform duration-300 ease-out"
+        className="transition-transform duration-300 ease-out invoice-scale-wrapper origin-top"
         ref={previewRef}
       >
         
@@ -324,31 +307,26 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({ data, previewRef }) => 
           return (
             <div 
               key={index}
-              className="invoice-page bg-white shadow-lg relative text-gray-800 mb-8 mx-auto overflow-hidden flex flex-col"
+              // UPDATE: Removed mb-8 on mobile to reduce vertical spacing between pages or bottom
+              className="invoice-page bg-white md:shadow-lg relative text-gray-800 mb-2 md:mb-8 mx-auto overflow-hidden flex flex-col"
               style={{
                 width: '794px', 
-                height: '1123px', // Strict A4 Height
+                height: '1123px',
                 padding: '40px',
                 boxSizing: 'border-box',
                 position: 'relative'
               }}
             >
-              {/* Content Wrapper */}
               <div>
-                {/* Header only on first page */}
                 {isFirst && <PageHeader />}
                 {isFirst && <ClientInfo />}
 
-                {/* Table Section */}
                 <div className="mb-4">
-                  {/* Table Header ONLY on First Page (removed from others per request) */}
                   {isFirst && <TableHeader />}
-                  
                   <div className="flex flex-col border-b border-gray-200">
                     {page.items.map((item) => (
                       <ItemRow key={item.id} item={item} />
                     ))}
-                    {/* If first page and no items, show placeholder */}
                     {page.items.length === 0 && isFirst && (
                        <div className="py-8 text-center text-gray-400 italic">Belum ada item</div>
                     )}
@@ -356,7 +334,6 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({ data, previewRef }) => 
                 </div>
               </div>
               
-              {/* Watermark */}
               {isLast && isPaid && (
                 <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none z-0">
                    <div className="border-8 border-green-500 text-green-500 text-9xl font-black opacity-20 -rotate-45 p-4 rounded-xl tracking-widest">
@@ -365,14 +342,12 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({ data, previewRef }) => 
                 </div>
               )}
 
-              {/* Footer (Only on last page) */}
               {isLast ? (
                 <InvoiceFooter />
               ) : (
                 <div className="mt-auto"></div>
               )}
 
-              {/* Page Number / Decoration */}
               <div className="absolute bottom-4 right-8 text-xs text-gray-400">
                 Halaman {index + 1} dari {pages.length}
               </div>

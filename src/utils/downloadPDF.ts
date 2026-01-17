@@ -14,21 +14,37 @@ export const downloadPDF = async (containerElement: HTMLElement | null, filename
 
     const pdf = new jsPDF('p', 'mm', 'a4');
     const pdfWidth = 210; // A4 Width in mm
-    const pdfHeight = 297; // A4 Height in mm
-
+    
     // 2. Loop through each page and capture it
     for (let i = 0; i < pages.length; i++) {
       const page = pages[i] as HTMLElement;
 
-      // Create a temporary clone for capture to ensure consistent rendering
-      // We append it to body to ensure it renders, but hide it
+      // Capture options
       const canvas = await html2canvas(page, {
-        scale: 2, // High resolution
+        scale: 3, // High resolution (3x standard 96dpi) for crisp text
         useCORS: true,
         logging: false,
         backgroundColor: '#ffffff',
         width: 794, // Force capture width (A4 @ 96DPI)
-        windowWidth: 1200 // Mock desktop width
+        windowWidth: 1600, // Mock desktop width to prevent mobile layout shifts
+        onclone: (clonedDoc) => {
+            // CRITICAL: Reset the transformation on the wrapper in the cloned document
+            // This ensures that even if the user is viewing a zoomed-out version on mobile,
+            // the PDF is generated from a full-size (scale 1) version.
+            const wrapper = clonedDoc.querySelector('.invoice-scale-wrapper') as HTMLElement;
+            if (wrapper) {
+                wrapper.style.transform = 'none';
+                wrapper.style.margin = '0';
+                wrapper.style.padding = '0';
+            }
+
+            // Remove shadows from pages in the PDF version for a clean "print" look
+            const clonedPages = clonedDoc.querySelectorAll('.invoice-page');
+            clonedPages.forEach((p) => {
+                (p as HTMLElement).style.boxShadow = 'none';
+                (p as HTMLElement).style.margin = '0 auto'; 
+            });
+        }
       });
 
       const imgData = canvas.toDataURL('image/png');

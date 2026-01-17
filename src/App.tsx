@@ -4,6 +4,7 @@ import FormInput from './components/FormInput';
 import InvoicePreview from './components/InvoicePreview';
 import DownloadPDFButton from './components/DownloadPDFButton';
 import MobileActionButton from './components/MobileActionButton';
+import Toast from './components/Toast';
 import { InvoiceData } from './types';
 
 const App: React.FC = () => {
@@ -11,6 +12,7 @@ const App: React.FC = () => {
   
   // Mobile View State ('form' or 'preview')
   const [mobileView, setMobileView] = useState<'form' | 'preview'>('form');
+  const [showToast, setShowToast] = useState(false);
 
   // Initial State
   const [invoiceData, setInvoiceData] = useState<InvoiceData>({
@@ -44,44 +46,50 @@ const App: React.FC = () => {
     setMobileView(prev => prev === 'form' ? 'preview' : 'form');
   };
 
+  const handleDownloadSuccess = () => {
+    setShowToast(true);
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 font-sans">
       <Header />
+      
+      <Toast 
+        message="PDF berhasil didownload!" 
+        isVisible={showToast} 
+        onClose={() => setShowToast(false)} 
+      />
 
-      <main className="flex-grow max-w-[1600px] mx-auto w-full p-4 sm:p-6 lg:p-8">
-        {/* Header Actions */}
-        <div className="flex justify-between items-center mb-6">
-           <h2 className="text-2xl font-bold text-gray-800">
-             {/* Dynamic Title for Mobile */}
+      {/* UPDATE: Reduced padding on mobile (p-0 sm:p-6) to maximize space usage */}
+      <main className="flex-grow max-w-[1600px] mx-auto w-full p-0 sm:p-6 lg:p-8">
+        
+        {/* Header Actions - hidden on mobile preview to save space, visible on form */}
+        <div className={`flex justify-between items-center mb-4 sm:mb-6 px-4 sm:px-0 pt-4 sm:pt-0 ${mobileView === 'preview' ? 'hidden sm:flex' : 'flex'}`}>
+           <h2 className="text-xl sm:text-2xl font-bold text-gray-800">
              <span className="lg:hidden">
-               {mobileView === 'form' ? 'Edit Invoice' : 'Preview Invoice'}
+               {mobileView === 'form' ? 'Edit Invoice' : 'Preview'}
              </span>
              <span className="hidden lg:inline">Dashboard</span>
            </h2>
            <DownloadPDFButton 
              targetRef={previewRef} 
              fileName={`Invoice-${invoiceData.invoiceNumber.replace(/\//g, '-')}`} 
+             onSuccess={handleDownloadSuccess}
            />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-0 lg:gap-8 items-start">
           {/* Left Column: Form Input */}
-          {/* Mobile Logic: Show only if view is 'form', or always on Desktop (lg) */}
-          <div className={`${mobileView === 'form' ? 'block' : 'hidden'} lg:block lg:col-span-5 space-y-6`}>
+          <div className={`${mobileView === 'form' ? 'block' : 'hidden'} lg:block lg:col-span-5 space-y-6 px-4 sm:px-0 pb-24 sm:pb-0`}>
              <div className="lg:sticky lg:top-24">
                 <FormInput data={invoiceData} onChange={setInvoiceData} />
              </div>
           </div>
 
           {/* Right Column: Preview */}
-          {/* Mobile Logic: Show only if view is 'preview', or always on Desktop (lg) */}
+          {/* UPDATE: Removed padding on mobile container */}
           <div className={`${mobileView === 'preview' ? 'block' : 'hidden'} lg:block lg:col-span-7`}>
              <div className="lg:sticky lg:top-24">
-                <div className="mb-2 flex justify-between items-center lg:hidden">
-                   <span className="text-sm font-medium text-gray-500">
-                      Tampilan otomatis disesuaikan dengan layar HP
-                   </span>
-                </div>
                 <InvoicePreview data={invoiceData} previewRef={previewRef} />
              </div>
           </div>
@@ -90,7 +98,8 @@ const App: React.FC = () => {
 
       <MobileActionButton currentView={mobileView} onToggle={toggleMobileView} />
       
-      <footer className="bg-white border-t border-gray-200 py-6 mt-12 pb-24 lg:pb-6">
+      {/* Footer only visible on desktop or form view to avoid cluttering preview */}
+      <footer className={`bg-white border-t border-gray-200 py-6 mt-auto ${mobileView === 'preview' ? 'hidden lg:block' : 'block'}`}>
         <div className="max-w-7xl mx-auto px-4 text-center text-gray-400 text-sm">
           &copy; {new Date().getFullYear()} Invoice Generator. Built with React & Tailwind.
         </div>
