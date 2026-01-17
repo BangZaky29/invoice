@@ -44,6 +44,10 @@ export interface InvoiceData {
   signatureImage: string | null;
   stampImage: string | null;
   
+  // Signer Info
+  signerName?: string;
+  signerTitle?: string;
+  
   // Watermark
   watermarkImage: string | null;
   watermarkOpacity: number; // 0 - 100

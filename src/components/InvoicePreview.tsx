@@ -276,8 +276,11 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({ data, previewRef }) => 
               )}
           </div>
           
-          <p className="text-sm font-bold text-gray-800 relative z-10">{data.companyName || 'Manager'}</p>
+          <p className="text-sm font-bold text-gray-800 relative z-10">{data.signerName || data.companyName || 'Manager'}</p>
           <div className="h-0.5 w-32 bg-gray-300 mt-1 ml-auto"></div>
+          {data.signerTitle && (
+            <p className="text-xs text-gray-600 mt-1 relative z-10">{data.signerTitle}</p>
+          )}
         </div>
       </div>
     </div>

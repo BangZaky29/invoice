@@ -177,6 +177,6 @@ const TTDUpload: React.FC<TTDUploadProps> = ({ onSignatureChange, signatureImage
       )}
     </div>
   );
-};
+};  
 
 export default TTDUpload;
