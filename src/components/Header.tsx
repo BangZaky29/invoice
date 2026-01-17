@@ -1,22 +1,24 @@
-import React from 'react';
-import { FileText } from 'lucide-react';
+import { FileText } from 'lucide-react'
+import logo from '../assets/NS_white_01.png';
 
-const Header: React.FC = () => {
+export default function Header() {
   return (
-    <header className="bg-white border-b border-gray-200 sticky top-0 z-30">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="bg-blue-600 p-2 rounded-lg">
-            <FileText className="w-6 h-6 text-white" />
+    <div className="bg-white border-b border-border-gray shadow-sm">
+      <div className="max-w-full px-4 md:px-1 py-3 md:py-5">
+        <div className="flex items-center gap-2 md:gap-3">
+          <div className="w-32 h-32 border-gray-300 rounded-xl shadow-[5px_5px_12px_rgba(0,0,0,0.11)]">
+            <img src={logo} alt="Logo"/>
           </div>
-          <h1 className="text-xl font-bold text-gray-800">Generator Invoice</h1>
-        </div>
-        <div className="text-sm text-gray-500 hidden sm:block">
-          Buat invoice profesional dengan mudah
+          <div className="min-w-0 flex-1">
+            <h1 className="text-base md:text-xl font-bold text-gray-900 truncate">
+              Generator Invoice
+            </h1>
+            <p className="text-xs md:text-sm text-gray-600 truncate">
+              Buat invoice profesional dengan mudah
+            </p>
+          </div>
         </div>
       </div>
-    </header>
-  );
-};
-
-export default Header;
+    </div>
+  )
+}
