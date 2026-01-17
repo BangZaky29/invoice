@@ -307,7 +307,6 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({ data, previewRef }) => 
           return (
             <div 
               key={index}
-              // UPDATE: Removed mb-8 on mobile to reduce vertical spacing between pages or bottom
               className="invoice-page bg-white md:shadow-lg relative text-gray-800 mb-2 md:mb-8 mx-auto overflow-hidden flex flex-col"
               style={{
                 width: '794px', 
@@ -317,36 +316,59 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({ data, previewRef }) => 
                 position: 'relative'
               }}
             >
-              <div>
-                {isFirst && <PageHeader />}
-                {isFirst && <ClientInfo />}
-
-                <div className="mb-4">
-                  {isFirst && <TableHeader />}
-                  <div className="flex flex-col border-b border-gray-200">
-                    {page.items.map((item) => (
-                      <ItemRow key={item.id} item={item} />
-                    ))}
-                    {page.items.length === 0 && isFirst && (
-                       <div className="py-8 text-center text-gray-400 italic">Belum ada item</div>
-                    )}
-                  </div>
-                </div>
-              </div>
+              {/* --- Watermark Layer --- */}
+              {data.watermarkImage && (
+                 <div 
+                   className="absolute inset-0 z-0 flex items-center justify-center pointer-events-none"
+                   style={{ 
+                     opacity: data.watermarkOpacity / 100 
+                   }}
+                 >
+                   <img 
+                     src={data.watermarkImage} 
+                     alt="Watermark" 
+                     className="object-contain grayscale opacity-100" 
+                     style={{
+                       width: `${data.watermarkScale}%`,
+                       maxWidth: 'none'
+                     }}
+                   />
+                 </div>
+              )}
               
-              {isLast && isPaid && (
-                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none z-0">
-                   <div className="border-8 border-green-500 text-green-500 text-9xl font-black opacity-20 -rotate-45 p-4 rounded-xl tracking-widest">
-                     LUNAS
-                   </div>
-                </div>
-              )}
+              {/* Content Wrapper (z-10 to stay above watermark) */}
+              <div className="relative z-10 flex flex-col h-full">
+                <div>
+                    {isFirst && <PageHeader />}
+                    {isFirst && <ClientInfo />}
 
-              {isLast ? (
-                <InvoiceFooter />
-              ) : (
-                <div className="mt-auto"></div>
-              )}
+                    <div className="mb-4">
+                    {isFirst && <TableHeader />}
+                    <div className="flex flex-col border-b border-gray-200">
+                        {page.items.map((item) => (
+                        <ItemRow key={item.id} item={item} />
+                        ))}
+                        {page.items.length === 0 && isFirst && (
+                        <div className="py-8 text-center text-gray-400 italic">Belum ada item</div>
+                        )}
+                    </div>
+                    </div>
+                </div>
+                
+                {isLast && isPaid && (
+                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none z-0">
+                    <div className="border-8 border-green-500 text-green-500 text-9xl font-black opacity-20 -rotate-45 p-4 rounded-xl tracking-widest">
+                        LUNAS
+                    </div>
+                    </div>
+                )}
+
+                {isLast ? (
+                    <InvoiceFooter />
+                ) : (
+                    <div className="mt-auto"></div>
+                )}
+              </div>
 
               <div className="absolute bottom-4 right-8 text-xs text-gray-400">
                 Halaman {index + 1} dari {pages.length}

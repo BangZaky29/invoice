@@ -1,6 +1,6 @@
 import React from 'react';
 import { InvoiceData, InvoiceItem, TaxSetting } from '../types';
-import { Plus, Trash2, ChevronDown, ChevronUp, Upload, X } from 'lucide-react';
+import { Plus, Trash2, ChevronDown, ChevronUp, Upload, X, Image as ImageIcon } from 'lucide-react';
 import TTDUpload from './TTDUpload';
 
 interface FormInputProps {
@@ -64,6 +64,17 @@ const FormInput: React.FC<FormInputProps> = ({ data, onChange }) => {
       const reader = new FileReader();
       reader.onloadend = () => {
         updateField('stampImage', reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleWatermarkUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        updateField('watermarkImage', reader.result as string);
       };
       reader.readAsDataURL(file);
     }
@@ -334,7 +345,86 @@ const FormInput: React.FC<FormInputProps> = ({ data, onChange }) => {
       {/* 5. Signature & Styling */}
       <SectionHeader id="extras" title="TTD & Stempel" step="5" />
       {expandedSection === 'extras' && (
-        <div className="p-4 space-y-4 animate-in slide-in-from-top-2 duration-200">
+        <div className="p-4 space-y-6 animate-in slide-in-from-top-2 duration-200">
+           
+           {/* Watermark Section */}
+           <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
+              <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                <ImageIcon size={18} className="text-blue-600" />
+                Logo Watermark
+              </h3>
+              <div className="flex flex-col gap-4">
+                 {/* Upload */}
+                 <div className="flex items-center gap-4">
+                    {data.watermarkImage ? (
+                      <div className="relative group w-20 h-20 border rounded-lg bg-white flex items-center justify-center overflow-hidden">
+                        <img src={data.watermarkImage} alt="Watermark" className="max-w-full max-h-full object-contain" />
+                        <button 
+                          onClick={() => updateField('watermarkImage', null)}
+                          className="absolute inset-0 bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
+                    ) : (
+                      <label className="cursor-pointer border-2 border-dashed border-blue-200 bg-white rounded-lg p-3 flex flex-col items-center justify-center text-gray-500 hover:bg-blue-50 w-24 h-24 text-center">
+                        <Upload size={18} className="mb-1 text-blue-400" />
+                        <span className="text-[10px] leading-tight">Upload Logo Tengah</span>
+                        <input type="file" className="hidden" accept="image/*" onChange={handleWatermarkUpload} />
+                      </label>
+                    )}
+                    
+                    <div className="flex-1">
+                      <p className="text-xs text-gray-500 mb-2">
+                         Upload logo perusahaan untuk ditampilkan transparan di tengah setiap halaman (Watermark).
+                      </p>
+                    </div>
+                 </div>
+
+                 {/* Opacity & Scale Sliders */}
+                 {data.watermarkImage && (
+                   <div className="space-y-4 pt-2">
+                      {/* Opacity Slider */}
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-xs font-medium text-gray-700">
+                          <span>Transparansi (Opacity)</span>
+                          <span>{data.watermarkOpacity}%</span>
+                        </div>
+                        <input 
+                          type="range" 
+                          min="0" 
+                          max="100" 
+                          step="1"
+                          value={data.watermarkOpacity}
+                          onChange={(e) => updateField('watermarkOpacity', Number(e.target.value))}
+                          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                        />
+                      </div>
+                      
+                      {/* Scale Slider */}
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-xs font-medium text-gray-700">
+                          <span>Ukuran (Scale)</span>
+                          <span>{data.watermarkScale}%</span>
+                        </div>
+                        <input 
+                          type="range" 
+                          min="10" 
+                          max="150" 
+                          step="1"
+                          value={data.watermarkScale}
+                          onChange={(e) => updateField('watermarkScale', Number(e.target.value))}
+                          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                        />
+                      </div>
+                   </div>
+                 )}
+              </div>
+           </div>
+           
+           <hr className="border-gray-100" />
+
+           {/* Existing TTD */}
            <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Tanda Tangan</label>
               <TTDUpload 
@@ -343,6 +433,7 @@ const FormInput: React.FC<FormInputProps> = ({ data, onChange }) => {
               />
            </div>
 
+           {/* Existing Stamp */}
            <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Upload Stempel (Opsional)</label>
               <div className="flex items-center gap-4">
@@ -371,6 +462,7 @@ const FormInput: React.FC<FormInputProps> = ({ data, onChange }) => {
               </div>
            </div>
 
+           {/* Existing Color Picker */}
            <div>
              <label className="block text-sm font-medium text-gray-700 mb-2">Warna Nuansa Invoice</label>
              <div className="flex gap-2">

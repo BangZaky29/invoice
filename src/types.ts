@@ -43,4 +43,9 @@ export interface InvoiceData {
   primaryColor: string;
   signatureImage: string | null;
   stampImage: string | null;
+  
+  // Watermark
+  watermarkImage: string | null;
+  watermarkOpacity: number; // 0 - 100
+  watermarkScale: number; // 0 - 100 (percentage relative to page width)
 }

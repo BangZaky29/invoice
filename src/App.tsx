@@ -6,6 +6,7 @@ import DownloadPDFButton from './components/DownloadPDFButton';
 import MobileActionButton from './components/MobileActionButton';
 import Toast from './components/Toast';
 import { InvoiceData } from './types';
+import defaultLogo from './assets/NS_blank_02.png';
 
 const App: React.FC = () => {
   const previewRef = useRef<HTMLDivElement>(null);
@@ -39,7 +40,11 @@ const App: React.FC = () => {
     amountPaid: 0,
     primaryColor: '#3B82F6',
     signatureImage: null,
-    stampImage: null
+    stampImage: null,
+    // Default Watermark Settings
+    watermarkImage: defaultLogo, // Default set to imported logo
+    watermarkOpacity: 15, // Default 15% opacity
+    watermarkScale: 70, // Default 70% width
   });
 
   const toggleMobileView = () => {
