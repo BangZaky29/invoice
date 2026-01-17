@@ -1,0 +1,5 @@
+{
+  "name": "Invoice Generator",
+  "description": "A professional invoice generator with real-time preview, signature support, and A4 PDF export.",
+  "requestFramePermissions": []
+}
