@@ -106,6 +106,8 @@ const TTDUpload: React.FC<TTDUploadProps> = ({ onSignatureChange, signatureImage
       };
       reader.readAsDataURL(file);
     }
+    // RESET VALUE agar bisa upload file yang sama
+    e.target.value = '';
   };
 
   return (
@@ -177,6 +179,6 @@ const TTDUpload: React.FC<TTDUploadProps> = ({ onSignatureChange, signatureImage
       )}
     </div>
   );
-};  
+};
 
 export default TTDUpload;

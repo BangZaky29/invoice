@@ -322,17 +322,18 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({ data, previewRef }) => 
               {/* --- Watermark Layer --- */}
               {data.watermarkImage && (
                  <div 
-                   className="absolute inset-0 z-0 flex items-center justify-center pointer-events-none"
-                   style={{ 
-                     opacity: data.watermarkOpacity / 100 
-                   }}
+                   className="absolute inset-0 z-0 overflow-hidden pointer-events-none"
                  >
                    <img 
                      src={data.watermarkImage} 
                      alt="Watermark" 
-                     className="object-contain grayscale opacity-100" 
+                     className="absolute object-contain grayscale" 
                      style={{
+                       opacity: data.watermarkOpacity / 100,
                        width: `${data.watermarkScale}%`,
+                       left: `${50 + (data.watermarkX || 0) / 2}%`,
+                       top: `${50 + (data.watermarkY || 0) / 2}%`,
+                       transform: 'translate(-50%, -50%)',
                        maxWidth: 'none'
                      }}
                    />

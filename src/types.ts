@@ -52,4 +52,6 @@ export interface InvoiceData {
   watermarkImage: string | null;
   watermarkOpacity: number; // 0 - 100
   watermarkScale: number; // 0 - 100 (percentage relative to page width)
+  watermarkX: number; // -100 to 100 (Horizontal Position)
+  watermarkY: number; // -100 to 100 (Vertical Position)
 }

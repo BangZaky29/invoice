@@ -48,7 +48,9 @@ const App: React.FC = () => {
     
     watermarkImage: null,
     watermarkOpacity: 30,
-    watermarkScale: 80
+    watermarkScale: 80,
+    watermarkX: 0,
+    watermarkY: 0
   });
 
   const handleDownloadSuccess = () => {
