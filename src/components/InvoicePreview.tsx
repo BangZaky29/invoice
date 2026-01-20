@@ -135,11 +135,13 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({ data, previewRef }) => 
     <div className="flex justify-between items-start mb-6 relative z-10 h-[210px]"> 
       <div>
         <h1 className="text-3xl font-bold mb-2" style={{ color: data.primaryColor }}>{data.companyName || 'Nama Perusahaan'}</h1>
-        <div className="text-sm text-gray-500 whitespace-pre-line max-w-[300px] leading-tight">
+        <div className="text-sm text-gray-500 whitespace-pre-line max-w-[350px] leading-tight">
           {data.companyAddress || 'Alamat Perusahaan'}
         </div>
-        <div className="text-sm text-gray-500 mt-1">
-          {data.companyPhone}
+        <div className="text-sm text-gray-500 mt-2 space-y-0.5">
+          <div>{data.companyPhone}</div>
+          {data.companyEmail && <div>{data.companyEmail}</div>}
+          {data.companyWebsite && <div>{data.companyWebsite}</div>}
         </div>
       </div>
       <div className="text-right">
@@ -164,6 +166,11 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({ data, previewRef }) => 
           <div className="text-sm text-gray-600 whitespace-pre-line max-w-[300px] leading-tight">
             {data.clientAddress || 'Alamat Client'}
           </div>
+          {data.clientPhone && (
+            <div className="text-sm text-gray-600 mt-1">
+              {data.clientPhone}
+            </div>
+          )}
         </div>
     </div>
   );
@@ -247,8 +254,8 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({ data, previewRef }) => 
           )}
           
           <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 mt-4">Catatan</h4>
-          <p className="text-xs text-gray-500">
-            Pembayaran diharapkan selesai sebelum jatuh tempo. Terima kasih.
+          <p className="text-xs text-gray-500 whitespace-pre-line leading-relaxed">
+            {data.footerNote}
           </p>
         </div>
         

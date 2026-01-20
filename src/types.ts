@@ -18,6 +18,8 @@ export interface InvoiceData {
   companyName: string;
   companyAddress: string;
   companyPhone: string;
+  companyEmail?: string;   // Added
+  companyWebsite?: string; // Added
   
   // Invoice Details
   invoiceNumber: string;
@@ -26,6 +28,7 @@ export interface InvoiceData {
   // Client Info
   clientName: string;
   clientAddress: string;
+  clientPhone?: string;    // Added
   
   // Items
   items: InvoiceItem[];
@@ -38,6 +41,9 @@ export interface InvoiceData {
   accountNumber?: string;
   accountName?: string; // Added account name (Atas Nama)
   amountPaid: number;
+  
+  // Footer Notes
+  footerNote?: string; // Added editable footer note
   
   // Styling & Extras
   primaryColor: string;

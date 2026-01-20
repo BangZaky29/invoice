@@ -137,7 +137,7 @@ const FormInput: React.FC<FormInputProps> = ({ data, onChange }) => {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">No. Telepon</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">No. Telepon / WA</label>
             <input
               type="text"
               className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"
@@ -145,6 +145,28 @@ const FormInput: React.FC<FormInputProps> = ({ data, onChange }) => {
               onChange={(e) => updateField('companyPhone', e.target.value)}
               placeholder="0812-3456-7890"
             />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Email (Opsional)</label>
+                <input
+                type="email"
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"
+                value={data.companyEmail || ''}
+                onChange={(e) => updateField('companyEmail', e.target.value)}
+                placeholder="info@perusahaan.com"
+                />
+            </div>
+            <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Website (Opsional)</label>
+                <input
+                type="text"
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"
+                value={data.companyWebsite || ''}
+                onChange={(e) => updateField('companyWebsite', e.target.value)}
+                placeholder="www.perusahaan.com"
+                />
+            </div>
           </div>
         </div>
       )}
@@ -184,11 +206,18 @@ const FormInput: React.FC<FormInputProps> = ({ data, onChange }) => {
               placeholder="Nama Client"
             />
             <textarea
-              className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"
+              className="w-full p-2 border border-gray-300 rounded-md mb-2 focus:ring-2 focus:ring-blue-500 outline-none"
               rows={2}
               value={data.clientAddress}
               onChange={(e) => updateField('clientAddress', e.target.value)}
               placeholder="Alamat Client"
+            />
+            <input
+              type="text"
+              className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"
+              value={data.clientPhone || ''}
+              onChange={(e) => updateField('clientPhone', e.target.value)}
+              placeholder="No. HP Client (Opsional)"
             />
           </div>
         </div>
@@ -257,7 +286,7 @@ const FormInput: React.FC<FormInputProps> = ({ data, onChange }) => {
       )}
 
       {/* 4. Financials */}
-      <SectionHeader id="financials" title="Pembayaran & Pajak" step="4" />
+      <SectionHeader id="financials" title="Pembayaran & Catatan" step="4" />
       {expandedSection === 'financials' && (
         <div className="p-4 space-y-4 animate-in slide-in-from-top-2 duration-200">
           {/* Tax Selection - Checkboxes */}
@@ -348,6 +377,19 @@ const FormInput: React.FC<FormInputProps> = ({ data, onChange }) => {
                   onChange={(e) => updateField('amountPaid', Number(e.target.value))}
                 />
             </div>
+          </div>
+          
+          <hr className="border-gray-100" />
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Catatan Footer (Bawah)</label>
+            <textarea
+              className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"
+              rows={2}
+              value={data.footerNote || ''}
+              onChange={(e) => updateField('footerNote', e.target.value)}
+              placeholder="Contoh: Pembayaran diharapkan selesai sebelum jatuh tempo."
+            />
           </div>
         </div>
       )}

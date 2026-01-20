@@ -19,10 +19,13 @@ const App: React.FC = () => {
     companyName: '',
     companyAddress: '',
     companyPhone: '',
+    companyEmail: '',
+    companyWebsite: '',
     invoiceNumber: 'INV/2024/001',
     invoiceDate: new Date().toISOString().split('T')[0],
     clientName: '',
     clientAddress: '',
+    clientPhone: '',
     items: [
       { id: '1', description: 'Jasa Desain Website', notes: 'Pembuatan landing page', qty: 1, price: 2500000 }
     ],
@@ -37,6 +40,9 @@ const App: React.FC = () => {
     accountNumber: '',
     accountName: '',
     amountPaid: 0,
+    
+    // Default Footer Note
+    footerNote: 'Pembayaran diharapkan selesai sebelum jatuh tempo. Terima kasih.',
     
     primaryColor: '#3B82F6',
     signatureImage: null,
