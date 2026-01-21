@@ -11,7 +11,8 @@ export const downloadPDF = async (containerElement: HTMLElement | null, filename
       throw new Error("Halaman invoice tidak ditemukan.");
     }
 
-    const pdf = new jsPDF('p', 'mm', 'a4');
+    // Enable PDF compression (4th argument = true)
+    const pdf = new jsPDF('p', 'mm', 'a4', true);
     const pdfWidth = 210; // A4 Width in mm
     
     // 2. Loop through each page and capture it
@@ -20,7 +21,7 @@ export const downloadPDF = async (containerElement: HTMLElement | null, filename
 
       // Capture options
       const canvas = await html2canvas(page, {
-        scale: 3, // High resolution (3x standard 96dpi) for crisp text
+        scale: 2, // Reduced from 3 to 2 to significantly lower file size while maintaining readability
         useCORS: true,
         logging: false,
         backgroundColor: '#ffffff',
@@ -44,7 +45,10 @@ export const downloadPDF = async (containerElement: HTMLElement | null, filename
         }
       });
 
-      const imgData = canvas.toDataURL('image/png');
+      // Convert to JPEG with 0.75 quality (Good balance between size and sharpness)
+      // PNG is lossless but produces much larger files for full-page screenshots.
+      const imgData = canvas.toDataURL('image/jpeg', 0.75);
+      
       const imgProps = pdf.getImageProperties(imgData);
       const imgHeight = (imgProps.height * pdfWidth) / imgProps.width;
 
@@ -53,7 +57,8 @@ export const downloadPDF = async (containerElement: HTMLElement | null, filename
         pdf.addPage();
       }
 
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, imgHeight);
+      // Add image with FAST compression
+      pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, imgHeight, undefined, 'FAST');
     }
 
     // 3. Save the PDF
