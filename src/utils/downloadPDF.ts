@@ -8,8 +8,7 @@ export const downloadPDF = async (containerElement: HTMLElement | null, filename
     // 1. Find all invoice pages inside the container
     const pages = containerElement.querySelectorAll('.invoice-page');
     if (pages.length === 0) {
-      console.error("No invoice pages found");
-      return;
+      throw new Error("Halaman invoice tidak ditemukan.");
     }
 
     const pdf = new jsPDF('p', 'mm', 'a4');
@@ -29,8 +28,6 @@ export const downloadPDF = async (containerElement: HTMLElement | null, filename
         windowWidth: 1600, // Mock desktop width to prevent mobile layout shifts
         onclone: (clonedDoc) => {
             // CRITICAL: Reset the transformation on the wrapper in the cloned document
-            // This ensures that even if the user is viewing a zoomed-out version on mobile,
-            // the PDF is generated from a full-size (scale 1) version.
             const wrapper = clonedDoc.querySelector('.invoice-scale-wrapper') as HTMLElement;
             if (wrapper) {
                 wrapper.style.transform = 'none';
@@ -64,6 +61,6 @@ export const downloadPDF = async (containerElement: HTMLElement | null, filename
 
   } catch (error) {
     console.error("Error generating PDF:", error);
-    alert("Gagal membuat PDF. Silakan coba lagi.");
+    throw error; // Re-throw to be handled by the UI
   }
 };

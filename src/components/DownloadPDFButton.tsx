@@ -6,13 +6,15 @@ interface DownloadPDFButtonProps {
   targetRef: React.RefObject<HTMLDivElement>;
   fileName: string;
   onSuccess?: () => void;
-  variant?: 'default' | 'fab'; // Added variant prop
+  onError?: (msg: string) => void;
+  variant?: 'default' | 'fab';
 }
 
 const DownloadPDFButton: React.FC<DownloadPDFButtonProps> = ({ 
   targetRef, 
   fileName, 
   onSuccess,
+  onError,
   variant = 'default' 
 }) => {
   const [loading, setLoading] = useState(false);
@@ -22,9 +24,14 @@ const DownloadPDFButton: React.FC<DownloadPDFButtonProps> = ({
     setLoading(true);
     // Slight delay to allow UI to render pending states if any
     setTimeout(async () => {
+      try {
         await downloadPDF(targetRef.current, `${fileName}.pdf`);
         setLoading(false);
         if (onSuccess) onSuccess();
+      } catch (e) {
+        setLoading(false);
+        if (onError) onError("Gagal membuat PDF. Pastikan tidak ada gambar yang corrupt.");
+      }
     }, 100);
   };
 

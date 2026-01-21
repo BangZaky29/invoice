@@ -1,15 +1,88 @@
-import React from 'react';
-import { InvoiceData, InvoiceItem, TaxSetting } from '../types';
-import { Plus, Trash2, ChevronDown, ChevronUp, Upload, X, Image as ImageIcon } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { InvoiceData, InvoiceItem, SavedInvoice } from '../types';
+import { Plus, Trash2, ChevronDown, ChevronUp, Upload, X, Image as ImageIcon, Save, RefreshCw, History, FolderOpen, Clock, AlertTriangle } from 'lucide-react';
 import TTDUpload from './TTDUpload';
+import { getHistory, saveToHistory, deleteFromHistory } from '../utils/localStorage';
+import Modal from './Modal';
+import { ToastType } from './Toast';
 
 interface FormInputProps {
   data: InvoiceData;
   onChange: (data: InvoiceData) => void;
+  onSave?: () => void; 
+  onReset?: () => void;
+  onToast?: (msg: string, type: ToastType) => void;
 }
 
-const FormInput: React.FC<FormInputProps> = ({ data, onChange }) => {
-  const [expandedSection, setExpandedSection] = React.useState<string>('company');
+const FormInput: React.FC<FormInputProps> = ({ data, onChange, onSave, onReset, onToast }) => {
+  const [expandedSection, setExpandedSection] = useState<string>('company');
+  const [history, setHistory] = useState<SavedInvoice[]>([]);
+  const [isHistoryOpen, setIsHistoryOpen] = useState<boolean>(false);
+
+  // Modals State
+  const [saveModalOpen, setSaveModalOpen] = useState(false);
+  const [saveTitle, setSaveTitle] = useState('');
+  
+  const [loadConfirmOpen, setLoadConfirmOpen] = useState(false);
+  const [selectedSnapshot, setSelectedSnapshot] = useState<SavedInvoice | null>(null);
+
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<string | null>(null);
+
+  // Load history on mount
+  useEffect(() => {
+    setHistory(getHistory());
+  }, []);
+
+  // --- Actions ---
+
+  const initiateSaveSnapshot = () => {
+    const defaultTitle = data.clientName 
+      ? `${data.clientName} - ${new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}`
+      : `Tanpa Nama - ${new Date().toLocaleString('id-ID')}`;
+    setSaveTitle(defaultTitle);
+    setSaveModalOpen(true);
+  };
+
+  const confirmSaveSnapshot = () => {
+    if (!saveTitle.trim()) {
+      if (onToast) onToast('Nama tidak boleh kosong', 'error');
+      return;
+    }
+    const updatedHistory = saveToHistory(data, saveTitle);
+    setHistory(updatedHistory);
+    setSaveModalOpen(false);
+    if (onSave) onSave();
+  };
+
+  const initiateLoadSnapshot = (snapshot: SavedInvoice) => {
+    setSelectedSnapshot(snapshot);
+    setLoadConfirmOpen(true);
+  };
+
+  const confirmLoadSnapshot = () => {
+    if (selectedSnapshot) {
+      onChange(selectedSnapshot.data);
+      setIsHistoryOpen(false); // Auto close
+      setLoadConfirmOpen(false);
+      if (onToast) onToast('Data berhasil dimuat!', 'success');
+    }
+  };
+
+  const initiateDeleteSnapshot = (id: string) => {
+    setItemToDelete(id);
+    setDeleteConfirmOpen(true);
+  };
+
+  const confirmDeleteSnapshot = () => {
+    if (itemToDelete) {
+      const updatedHistory = deleteFromHistory(itemToDelete);
+      setHistory(updatedHistory);
+      setDeleteConfirmOpen(false);
+      if (onToast) onToast('Riwayat dihapus.', 'success');
+    }
+  };
+
 
   const updateField = (field: keyof InvoiceData, value: any) => {
     onChange({ ...data, [field]: value });
@@ -67,7 +140,6 @@ const FormInput: React.FC<FormInputProps> = ({ data, onChange }) => {
       };
       reader.readAsDataURL(file);
     }
-    // RESET VALUE agar bisa upload file yang sama
     e.target.value = '';
   };
 
@@ -76,7 +148,6 @@ const FormInput: React.FC<FormInputProps> = ({ data, onChange }) => {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        // Fix: Update all fields at once to avoid stale state closure issues
         onChange({
           ...data,
           watermarkImage: reader.result as string,
@@ -86,7 +157,6 @@ const FormInput: React.FC<FormInputProps> = ({ data, onChange }) => {
       };
       reader.readAsDataURL(file);
     }
-    // RESET VALUE agar bisa upload file yang sama
     e.target.value = '';
   };
 
@@ -110,509 +180,705 @@ const FormInput: React.FC<FormInputProps> = ({ data, onChange }) => {
   );
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden" id="invoice-form">
+    <div className="flex flex-col gap-4">
       
-      {/* 1. Company Info */}
-      <SectionHeader id="company" title="Info Perusahaan" step="1" />
-      {expandedSection === 'company' && (
-        <div className="p-4 space-y-3 animate-in slide-in-from-top-2 duration-200">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Nama Perusahaan</label>
-            <input
-              type="text"
-              className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-              value={data.companyName}
-              onChange={(e) => updateField('companyName', e.target.value)}
-              placeholder="Contoh: Nuansa Solution"
-            />
+      {/* --- RIWAYAT TERSIMPAN SECTION --- */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <button 
+          onClick={() => setIsHistoryOpen(!isHistoryOpen)}
+          className="w-full flex items-center justify-between p-4 bg-white hover:bg-gray-50 transition-colors"
+        >
+          <div className="flex items-center gap-2 text-gray-800 font-bold">
+            <History className="text-blue-600" size={20} />
+            <span>Riwayat Tersimpan</span>
+            {history.length > 0 && (
+              <span className="bg-blue-600 text-white text-[10px] px-2 py-0.5 rounded-full">
+                {history.length}
+              </span>
+            )}
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Alamat</label>
-            <textarea
-              className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"
-              rows={2}
-              value={data.companyAddress}
-              onChange={(e) => updateField('companyAddress', e.target.value)}
-              placeholder="Jl. Sudirman No. 1, Jakarta"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">No. Telepon / WA</label>
-            <input
-              type="text"
-              className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"
-              value={data.companyPhone}
-              onChange={(e) => updateField('companyPhone', e.target.value)}
-              placeholder="0812-3456-7890"
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email (Opsional)</label>
-                <input
-                type="email"
-                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"
-                value={data.companyEmail || ''}
-                onChange={(e) => updateField('companyEmail', e.target.value)}
-                placeholder="info@perusahaan.com"
-                />
-            </div>
-            <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Website (Opsional)</label>
-                <input
-                type="text"
-                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"
-                value={data.companyWebsite || ''}
-                onChange={(e) => updateField('companyWebsite', e.target.value)}
-                placeholder="www.perusahaan.com"
-                />
-            </div>
-          </div>
-        </div>
-      )}
+          {isHistoryOpen ? <ChevronUp size={20} className="text-gray-400" /> : <ChevronDown size={20} className="text-gray-400" />}
+        </button>
 
-      {/* Invoice Details & Client (Grouped logically) */}
-      <SectionHeader id="details" title="Detail Invoice & Client" step="2" />
-      {expandedSection === 'details' && (
-        <div className="p-4 space-y-4 animate-in slide-in-from-top-2 duration-200">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">No. Invoice</label>
-              <input
-                type="text"
-                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"
-                value={data.invoiceNumber}
-                onChange={(e) => updateField('invoiceNumber', e.target.value)}
-              />
+        {isHistoryOpen && (
+          <div className="p-4 border-t border-gray-100 animate-in slide-in-from-top-2">
+            {/* Save Box */}
+            <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 mb-6">
+               <p className="text-sm text-blue-800 mb-3">
+                 Simpan konfigurasi invoice saat ini ke browser agar bisa digunakan kembali nanti.
+               </p>
+               <button 
+                  onClick={initiateSaveSnapshot}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors shadow-sm"
+               >
+                 <Save size={18} />
+                 Simpan Data Saat Ini
+               </button>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Tanggal</label>
-              <input
-                type="date"
-                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"
-                value={data.invoiceDate}
-                onChange={(e) => updateField('invoiceDate', e.target.value)}
-              />
-            </div>
-          </div>
-          <hr className="border-gray-100" />
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Tagihan Untuk (Client)</label>
-            <input
-              type="text"
-              className="w-full p-2 border border-gray-300 rounded-md mb-2 focus:ring-2 focus:ring-blue-500 outline-none"
-              value={data.clientName}
-              onChange={(e) => updateField('clientName', e.target.value)}
-              placeholder="Nama Client"
-            />
-            <textarea
-              className="w-full p-2 border border-gray-300 rounded-md mb-2 focus:ring-2 focus:ring-blue-500 outline-none"
-              rows={2}
-              value={data.clientAddress}
-              onChange={(e) => updateField('clientAddress', e.target.value)}
-              placeholder="Alamat Client"
-            />
-            <input
-              type="text"
-              className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"
-              value={data.clientPhone || ''}
-              onChange={(e) => updateField('clientPhone', e.target.value)}
-              placeholder="No. HP Client (Opsional)"
-            />
-          </div>
-        </div>
-      )}
 
-      {/* 3. Items */}
-      <SectionHeader id="items" title="Produk / Jasa" step="3" />
-      {expandedSection === 'items' && (
-        <div className="p-4 bg-gray-50/50 animate-in slide-in-from-top-2 duration-200">
-          <div className="space-y-4">
-            {data.items.map((item, index) => (
-              <div key={item.id} className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm relative group">
-                <div className="grid grid-cols-12 gap-3">
-                  <div className="col-span-12 sm:col-span-8">
-                    <input
-                      type="text"
-                      className="w-full p-2 text-sm border-b border-gray-200 focus:border-blue-500 outline-none font-medium mb-1"
-                      placeholder="Nama Item / Jasa"
-                      value={item.description}
-                      onChange={(e) => handleItemChange(item.id, 'description', e.target.value)}
-                    />
-                    <input
-                      type="text"
-                      className="w-full p-1 text-xs text-gray-500 border-none focus:ring-0 outline-none bg-transparent"
-                      placeholder="Keterangan tambahan (opsional)"
-                      value={item.notes || ''}
-                      onChange={(e) => handleItemChange(item.id, 'notes', e.target.value)}
-                    />
-                  </div>
-                  <div className="col-span-4 sm:col-span-2">
-                    <label className="text-[10px] uppercase text-gray-400 font-bold">Qty</label>
-                    <input
-                      type="number"
-                      className="w-full p-1 border border-gray-200 rounded text-center"
-                      value={item.qty}
-                      onChange={(e) => handleItemChange(item.id, 'qty', Number(e.target.value))}
-                    />
-                  </div>
-                  <div className="col-span-8 sm:col-span-2">
-                    <label className="text-[10px] uppercase text-gray-400 font-bold">Harga</label>
-                    <input
-                      type="number"
-                      className="w-full p-1 border border-gray-200 rounded text-right"
-                      value={item.price}
-                      onChange={(e) => handleItemChange(item.id, 'price', Number(e.target.value))}
-                    />
-                  </div>
+            {/* List Header */}
+            <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">
+              <Clock size={12} />
+              Riwayat Tersimpan ({history.length})
+            </div>
+
+            {/* History List */}
+            <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
+              {history.length === 0 ? (
+                <div className="text-center py-6 text-gray-400 text-sm border-2 border-dashed border-gray-100 rounded-lg">
+                  Belum ada riwayat tersimpan.
                 </div>
-                <button
-                  onClick={() => removeItem(item.id)}
-                  className="absolute -top-2 -right-2 bg-red-100 text-red-500 p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-sm hover:bg-red-200"
-                >
-                  <Trash2 size={14} />
-                </button>
-              </div>
-            ))}
-            
-            <button
-              onClick={addItem}
-              className="w-full py-2 border-2 border-dashed border-blue-300 rounded-lg text-blue-600 font-medium hover:bg-blue-50 transition-colors flex items-center justify-center gap-2"
-            >
-              <Plus size={18} /> Tambah Item
-            </button>
-          </div>
-        </div>
-      )}
+              ) : (
+                history.map((item) => (
+                  <div key={item.id} className="bg-white border border-gray-200 rounded-lg p-3 hover:shadow-md transition-shadow group">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <h4 className="font-semibold text-gray-800 text-sm">{item.title}</h4>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          {new Date(item.timestamp).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex gap-2 mt-2">
+                      <button 
+                        onClick={() => initiateLoadSnapshot(item)}
+                        className="flex-1 bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-700 text-xs font-medium py-1.5 px-3 rounded flex items-center justify-center gap-1.5 transition-colors"
+                      >
+                        <FolderOpen size={14} /> Buka
+                      </button>
+                      <button 
+                        onClick={() => initiateDeleteSnapshot(item.id)}
+                        className="bg-white border border-gray-200 text-gray-400 hover:text-red-500 hover:border-red-200 hover:bg-red-50 py-1.5 px-2 rounded transition-colors"
+                        title="Hapus"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
 
-      {/* 4. Financials */}
-      <SectionHeader id="financials" title="Pembayaran & Catatan" step="4" />
-      {expandedSection === 'financials' && (
-        <div className="p-4 space-y-4 animate-in slide-in-from-top-2 duration-200">
-          {/* Tax Selection - Checkboxes */}
-          <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
-            <label className="block text-sm font-bold text-gray-700 mb-3">Setting Pajak</label>
-            <div className="space-y-3">
-              {data.taxSettings.map((tax) => (
-                <div key={tax.id} className="flex items-center justify-between bg-white p-2 rounded border border-gray-200">
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      id={`tax-${tax.id}`}
-                      checked={tax.enabled}
-                      onChange={() => toggleTax(tax.id)}
-                      className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 cursor-pointer"
-                    />
-                    <label htmlFor={`tax-${tax.id}`} className="text-sm font-medium text-gray-700 cursor-pointer">
-                      {tax.id === 'manual' ? (
-                        <input 
-                          type="text" 
-                          value={tax.name}
-                          onChange={(e) => updateTaxName(tax.id, e.target.value)}
-                          className="border-b border-gray-300 focus:border-blue-500 outline-none w-24 px-1"
-                          placeholder="Nama Pajak"
-                        />
-                      ) : tax.name}
-                    </label>
+            {/* Reset Button (Utility) */}
+            <div className="mt-4 pt-4 border-t border-gray-100 flex justify-end">
+               <button 
+                  onClick={onReset}
+                  className="text-xs text-red-500 hover:text-red-600 flex items-center gap-1 hover:underline"
+               >
+                 <RefreshCw size={12} /> Reset Formulir ke Awal
+               </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden" id="invoice-form">
+        
+        {/* 1. Company Info */}
+        <SectionHeader id="company" title="Info Perusahaan" step="1" />
+        {expandedSection === 'company' && (
+          <div className="p-4 space-y-3 animate-in slide-in-from-top-2 duration-200">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Nama Perusahaan</label>
+              <input
+                type="text"
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                value={data.companyName}
+                onChange={(e) => updateField('companyName', e.target.value)}
+                placeholder="Contoh: Nuansa Solution"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Alamat</label>
+              <textarea
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"
+                rows={2}
+                value={data.companyAddress}
+                onChange={(e) => updateField('companyAddress', e.target.value)}
+                placeholder="Jl. Sudirman No. 1, Jakarta"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">No. Telepon / WA</label>
+              <input
+                type="text"
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"
+                value={data.companyPhone}
+                onChange={(e) => updateField('companyPhone', e.target.value)}
+                placeholder="0812-3456-7890"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Email (Opsional)</label>
+                  <input
+                  type="email"
+                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"
+                  value={data.companyEmail || ''}
+                  onChange={(e) => updateField('companyEmail', e.target.value)}
+                  placeholder="info@perusahaan.com"
+                  />
+              </div>
+              <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Website (Opsional)</label>
+                  <input
+                  type="text"
+                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"
+                  value={data.companyWebsite || ''}
+                  onChange={(e) => updateField('companyWebsite', e.target.value)}
+                  placeholder="www.perusahaan.com"
+                  />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Invoice Details & Client (Grouped logically) */}
+        <SectionHeader id="details" title="Detail Invoice & Client" step="2" />
+        {expandedSection === 'details' && (
+          <div className="p-4 space-y-4 animate-in slide-in-from-top-2 duration-200">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">No. Invoice</label>
+                <input
+                  type="text"
+                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"
+                  value={data.invoiceNumber}
+                  onChange={(e) => updateField('invoiceNumber', e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Tanggal</label>
+                <input
+                  type="date"
+                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"
+                  value={data.invoiceDate}
+                  onChange={(e) => updateField('invoiceDate', e.target.value)}
+                />
+              </div>
+            </div>
+            <hr className="border-gray-100" />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Tagihan Untuk (Client)</label>
+              <input
+                type="text"
+                className="w-full p-2 border border-gray-300 rounded-md mb-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                value={data.clientName}
+                onChange={(e) => updateField('clientName', e.target.value)}
+                placeholder="Nama Client"
+              />
+              <textarea
+                className="w-full p-2 border border-gray-300 rounded-md mb-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                rows={2}
+                value={data.clientAddress}
+                onChange={(e) => updateField('clientAddress', e.target.value)}
+                placeholder="Alamat Client"
+              />
+              <input
+                type="text"
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"
+                value={data.clientPhone || ''}
+                onChange={(e) => updateField('clientPhone', e.target.value)}
+                placeholder="No. HP Client (Opsional)"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* 3. Items */}
+        <SectionHeader id="items" title="Produk / Jasa" step="3" />
+        {expandedSection === 'items' && (
+          <div className="p-4 bg-gray-50/50 animate-in slide-in-from-top-2 duration-200">
+            <div className="space-y-4">
+              {data.items.map((item, index) => (
+                <div key={item.id} className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm relative group">
+                  <div className="grid grid-cols-12 gap-3">
+                    <div className="col-span-12 sm:col-span-8">
+                      <input
+                        type="text"
+                        className="w-full p-2 text-sm border-b border-gray-200 focus:border-blue-500 outline-none font-medium mb-1"
+                        placeholder="Nama Item / Jasa"
+                        value={item.description}
+                        onChange={(e) => handleItemChange(item.id, 'description', e.target.value)}
+                      />
+                      <input
+                        type="text"
+                        className="w-full p-1 text-xs text-gray-500 border-none focus:ring-0 outline-none bg-transparent"
+                        placeholder="Keterangan tambahan (opsional)"
+                        value={item.notes || ''}
+                        onChange={(e) => handleItemChange(item.id, 'notes', e.target.value)}
+                      />
+                    </div>
+                    <div className="col-span-4 sm:col-span-2">
+                      <label className="text-[10px] uppercase text-gray-400 font-bold">Qty</label>
+                      <input
+                        type="number"
+                        className="w-full p-1 border border-gray-200 rounded text-center"
+                        value={item.qty}
+                        onChange={(e) => handleItemChange(item.id, 'qty', Number(e.target.value))}
+                      />
+                    </div>
+                    <div className="col-span-8 sm:col-span-2">
+                      <label className="text-[10px] uppercase text-gray-400 font-bold">Harga</label>
+                      <input
+                        type="number"
+                        className="w-full p-1 border border-gray-200 rounded text-right"
+                        value={item.price}
+                        onChange={(e) => handleItemChange(item.id, 'price', Number(e.target.value))}
+                      />
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <input
-                      type="number"
-                      step="0.1"
-                      value={tax.rate}
-                      onChange={(e) => updateTaxRate(tax.id, Number(e.target.value))}
-                      className="w-14 p-1 text-sm border border-gray-300 rounded text-right focus:border-blue-500 outline-none"
-                    />
-                    <span className="text-sm text-gray-500">%</span>
-                  </div>
+                  <button
+                    onClick={() => removeItem(item.id)}
+                    className="absolute -top-2 -right-2 bg-red-100 text-red-500 p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-sm hover:bg-red-200"
+                  >
+                    <Trash2 size={14} />
+                  </button>
                 </div>
               ))}
+              
+              <button
+                onClick={addItem}
+                className="w-full py-2 border-2 border-dashed border-blue-300 rounded-lg text-blue-600 font-medium hover:bg-blue-50 transition-colors flex items-center justify-center gap-2"
+              >
+                <Plus size={18} /> Tambah Item
+              </button>
             </div>
-            <p className="text-xs text-gray-400 mt-2 italic">*Centang untuk mengaktifkan pajak. Rate bisa diubah sesuai kebutuhan.</p>
           </div>
+        )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Metode Pembayaran</label>
-              <input
-                list="payment-methods"
-                className="w-full p-2 border border-gray-300 rounded-md"
-                value={data.paymentMethod}
-                onChange={(e) => updateField('paymentMethod', e.target.value)}
-                placeholder="Pilih atau ketik..."
-              />
-              <datalist id="payment-methods">
-                <option value="Transfer Bank BCA" />
-                <option value="Transfer Bank Mandiri" />
-                <option value="Cash / Tunai" />
-                <option value="QRIS" />
-              </datalist>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">No. Rekening (Opsional)</label>
-              <input
-                type="text"
-                className="w-full p-2 border border-gray-300 rounded-md"
-                value={data.accountNumber || ''}
-                onChange={(e) => updateField('accountNumber', e.target.value)}
-                placeholder="Contoh: 1234567890"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Atas Nama (Opsional)</label>
-              <input
-                type="text"
-                className="w-full p-2 border border-gray-300 rounded-md"
-                value={data.accountName || ''}
-                onChange={(e) => updateField('accountName', e.target.value)}
-                placeholder="Contoh: PT Nuansa Solution"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Sudah Dibayar (Rp)</label>
-              <input
-                  type="number"
-                  className="w-full p-2 border border-gray-300 rounded-md"
-                  value={data.amountPaid}
-                  onChange={(e) => updateField('amountPaid', Number(e.target.value))}
-                />
-            </div>
-          </div>
-          
-          <hr className="border-gray-100" />
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Catatan Footer (Bawah)</label>
-            <textarea
-              className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"
-              rows={2}
-              value={data.footerNote || ''}
-              onChange={(e) => updateField('footerNote', e.target.value)}
-              placeholder="Contoh: Pembayaran diharapkan selesai sebelum jatuh tempo."
-            />
-          </div>
-        </div>
-      )}
-
-      {/* 5. Signature & Styling */}
-      <SectionHeader id="extras" title="TTD & Stempel" step="5" />
-      {expandedSection === 'extras' && (
-        <div className="p-4 space-y-6 animate-in slide-in-from-top-2 duration-200">
-          
-          {/* Watermark Section */}
-          <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
-              <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                <ImageIcon size={18} className="text-blue-600" />
-                Logo Watermark
-              </h3>
-              <div className="flex flex-col gap-4">
-                {/* Upload */}
-                <div className="flex items-center gap-4">
-                    {data.watermarkImage ? (
-                      <div className="relative group w-20 h-20 border rounded-lg bg-white flex items-center justify-center overflow-hidden">
-                        <img src={data.watermarkImage} alt="Watermark" className="max-w-full max-h-full object-contain" />
-                        <button 
-                          onClick={() => updateField('watermarkImage', null)}
-                          className="absolute inset-0 bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <X size={16} />
-                        </button>
-                      </div>
-                    ) : (
-                      <label 
-                        htmlFor="watermark-upload"
-                        className="cursor-pointer border-2 border-dashed border-blue-200 bg-white rounded-lg p-3 flex flex-col items-center justify-center text-gray-500 hover:bg-blue-50 w-24 h-24 text-center"
-                      >
-                        <Upload size={18} className="mb-1 text-blue-400" />
-                        <span className="text-[10px] leading-tight">Upload Logo Tengah</span>
-                        <input 
-                          id="watermark-upload"
-                          type="file" 
-                          className="hidden" 
-                          accept="image/*" 
-                          onChange={handleWatermarkUpload} 
-                        />
+        {/* 4. Financials */}
+        <SectionHeader id="financials" title="Pembayaran & Catatan" step="4" />
+        {expandedSection === 'financials' && (
+          <div className="p-4 space-y-4 animate-in slide-in-from-top-2 duration-200">
+            {/* Tax Selection - Checkboxes */}
+            <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
+              <label className="block text-sm font-bold text-gray-700 mb-3">Setting Pajak</label>
+              <div className="space-y-3">
+                {data.taxSettings.map((tax) => (
+                  <div key={tax.id} className="flex items-center justify-between bg-white p-2 rounded border border-gray-200">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id={`tax-${tax.id}`}
+                        checked={tax.enabled}
+                        onChange={() => toggleTax(tax.id)}
+                        className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 cursor-pointer"
+                      />
+                      <label htmlFor={`tax-${tax.id}`} className="text-sm font-medium text-gray-700 cursor-pointer">
+                        {tax.id === 'manual' ? (
+                          <input 
+                            type="text" 
+                            value={tax.name}
+                            onChange={(e) => updateTaxName(tax.id, e.target.value)}
+                            className="border-b border-gray-300 focus:border-blue-500 outline-none w-24 px-1"
+                            placeholder="Nama Pajak"
+                          />
+                        ) : tax.name}
                       </label>
-                    )}
-                    
-                    <div className="flex-1">
-                      <p className="text-xs text-gray-500 mb-2">
-                        Upload logo perusahaan untuk ditampilkan transparan di tengah setiap halaman (Watermark).
-                      </p>
                     </div>
-                </div>
-
-                {/* Settings Sliders */}
-                {data.watermarkImage && (
-                  <div className="space-y-4 pt-2">
-                      {/* Opacity Slider */}
-                      <div className="space-y-1">
-                        <div className="flex justify-between text-xs font-medium text-gray-700">
-                          <span>Transparansi (Opacity)</span>
-                          <span>{data.watermarkOpacity}%</span>
-                        </div>
-                        <input 
-                          type="range" 
-                          min="0" 
-                          max="100" 
-                          step="1"
-                          value={data.watermarkOpacity}
-                          onChange={(e) => updateField('watermarkOpacity', Number(e.target.value))}
-                          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
-                        />
-                      </div>
-                      
-                      {/* Scale Slider */}
-                      <div className="space-y-1">
-                        <div className="flex justify-between text-xs font-medium text-gray-700">
-                          <span>Ukuran (Scale)</span>
-                          <span>{data.watermarkScale}%</span>
-                        </div>
-                        <input 
-                          type="range" 
-                          min="10" 
-                          max="150" 
-                          step="1"
-                          value={data.watermarkScale}
-                          onChange={(e) => updateField('watermarkScale', Number(e.target.value))}
-                          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
-                        />
-                      </div>
-
-                      {/* Horizontal Position Slider (X) */}
-                      <div className="space-y-1">
-                        <div className="flex justify-between text-xs font-medium text-gray-700">
-                          <span>Posisi Horizontal (X)</span>
-                          <span>{data.watermarkX}</span>
-                        </div>
-                        <input 
-                          type="range" 
-                          min="-100" 
-                          max="100" 
-                          step="1"
-                          value={data.watermarkX || 0}
-                          onChange={(e) => updateField('watermarkX', Number(e.target.value))}
-                          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
-                        />
-                      </div>
-
-                      {/* Vertical Position Slider (Y) */}
-                      <div className="space-y-1">
-                        <div className="flex justify-between text-xs font-medium text-gray-700">
-                          <span>Posisi Vertikal (Y)</span>
-                          <span>{data.watermarkY}</span>
-                        </div>
-                        <input 
-                          type="range" 
-                          min="-100" 
-                          max="100" 
-                          step="1"
-                          value={data.watermarkY || 0}
-                          onChange={(e) => updateField('watermarkY', Number(e.target.value))}
-                          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
-                        />
-                      </div>
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="number"
+                        step="0.1"
+                        value={tax.rate}
+                        onChange={(e) => updateTaxRate(tax.id, Number(e.target.value))}
+                        className="w-14 p-1 text-sm border border-gray-300 rounded text-right focus:border-blue-500 outline-none"
+                      />
+                      <span className="text-sm text-gray-500">%</span>
+                    </div>
                   </div>
-                )}
-              </div>
-          </div>
-          
-          <hr className="border-gray-100" />
-
-          {/* Signer Info Fields (NEW) */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Nama Penanda Tangan</label>
-              <input
-                type="text"
-                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"
-                value={data.signerName || ''}
-                onChange={(e) => updateField('signerName', e.target.value)}
-                placeholder="Nama Lengkap"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Jabatan</label>
-              <input
-                type="text"
-                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"
-                value={data.signerTitle || ''}
-                onChange={(e) => updateField('signerTitle', e.target.value)}
-                placeholder="Manager / Admin"
-              />
-            </div>
-          </div>
-
-          {/* Existing TTD */}
-          <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Tanda Tangan</label>
-              <TTDUpload 
-                signatureImage={data.signatureImage}
-                onSignatureChange={(val) => updateField('signatureImage', val)}
-              />
-          </div>
-
-          {/* Existing Stamp */}
-          <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Upload Stempel (Opsional)</label>
-              <div className="flex items-center gap-4">
-                {data.stampImage ? (
-                  <div className="relative group w-24 h-24 border rounded-lg overflow-hidden flex items-center justify-center bg-gray-50">
-                    <img src={data.stampImage} alt="Stamp" className="max-w-full max-h-full object-contain" />
-                    <button 
-                      onClick={() => updateField('stampImage', null)}
-                      className="absolute inset-0 bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <X size={20} />
-                    </button>
-                  </div>
-                ) : (
-                  <label 
-                    htmlFor="stamp-upload"
-                    className="cursor-pointer border-2 border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center text-gray-500 hover:bg-gray-50 w-full sm:w-auto min-w-[150px]"
-                  >
-                    <Upload size={20} className="mb-2" />
-                    <span className="text-xs">Upload Stempel</span>
-                    <input 
-                      id="stamp-upload"
-                      type="file" 
-                      className="hidden" 
-                      accept="image/*" 
-                      onChange={handleStampUpload} 
-                    />
-                  </label>
-                )}
-                {data.stampImage && (
-                  <div className="text-sm text-gray-500">
-                    Stempel berhasil diupload.
-                  </div>
-                )}
-              </div>
-          </div>
-
-          {/* Existing Color Picker */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Warna Nuansa Invoice</label>
-            <div className="flex gap-2">
-                {['#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#6366F1', '#1F2937'].map(color => (
-                  <button
-                    key={color}
-                    onClick={() => updateField('primaryColor', color)}
-                    className={`w-8 h-8 rounded-full border-2 ${data.primaryColor === color ? 'border-gray-800 scale-110' : 'border-transparent'}`}
-                    style={{ backgroundColor: color }}
-                  />
                 ))}
-                <input 
-                  type="color"
-                  value={data.primaryColor}
-                  onChange={(e) => updateField('primaryColor', e.target.value)}
-                  className="w-8 h-8 rounded overflow-hidden cursor-pointer"
+              </div>
+              <p className="text-xs text-gray-400 mt-2 italic">*Centang untuk mengaktifkan pajak. Rate bisa diubah sesuai kebutuhan.</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Metode Pembayaran</label>
+                <input
+                  list="payment-methods"
+                  className="w-full p-2 border border-gray-300 rounded-md"
+                  value={data.paymentMethod}
+                  onChange={(e) => updateField('paymentMethod', e.target.value)}
+                  placeholder="Pilih atau ketik..."
+                />
+                <datalist id="payment-methods">
+                  <option value="Transfer Bank BCA" />
+                  <option value="Transfer Bank Mandiri" />
+                  <option value="Cash / Tunai" />
+                  <option value="QRIS" />
+                </datalist>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">No. Rekening (Opsional)</label>
+                <input
+                  type="text"
+                  className="w-full p-2 border border-gray-300 rounded-md"
+                  value={data.accountNumber || ''}
+                  onChange={(e) => updateField('accountNumber', e.target.value)}
+                  placeholder="Contoh: 1234567890"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Atas Nama (Opsional)</label>
+                <input
+                  type="text"
+                  className="w-full p-2 border border-gray-300 rounded-md"
+                  value={data.accountName || ''}
+                  onChange={(e) => updateField('accountName', e.target.value)}
+                  placeholder="Contoh: PT Nuansa Solution"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Sudah Dibayar (Rp)</label>
+                <input
+                    type="number"
+                    className="w-full p-2 border border-gray-300 rounded-md"
+                    value={data.amountPaid}
+                    onChange={(e) => updateField('amountPaid', Number(e.target.value))}
+                  />
+              </div>
+            </div>
+            
+            <hr className="border-gray-100" />
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Catatan Footer (Bawah)</label>
+              <textarea
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"
+                rows={2}
+                value={data.footerNote || ''}
+                onChange={(e) => updateField('footerNote', e.target.value)}
+                placeholder="Contoh: Pembayaran diharapkan selesai sebelum jatuh tempo."
+              />
+            </div>
+          </div>
+        )}
+
+        {/* 5. Signature & Styling */}
+        <SectionHeader id="extras" title="TTD & Stempel" step="5" />
+        {expandedSection === 'extras' && (
+          <div className="p-4 space-y-6 animate-in slide-in-from-top-2 duration-200">
+            
+            {/* Watermark Section */}
+            <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                  <ImageIcon size={18} className="text-blue-600" />
+                  Logo Watermark
+                </h3>
+                <div className="flex flex-col gap-4">
+                  {/* Upload */}
+                  <div className="flex items-center gap-4">
+                      {data.watermarkImage ? (
+                        <div className="relative group w-20 h-20 border rounded-lg bg-white flex items-center justify-center overflow-hidden">
+                          <img src={data.watermarkImage} alt="Watermark" className="max-w-full max-h-full object-contain" />
+                          <button 
+                            onClick={() => updateField('watermarkImage', null)}
+                            className="absolute inset-0 bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <X size={16} />
+                          </button>
+                        </div>
+                      ) : (
+                        <label 
+                          htmlFor="watermark-upload"
+                          className="cursor-pointer border-2 border-dashed border-blue-200 bg-white rounded-lg p-3 flex flex-col items-center justify-center text-gray-500 hover:bg-blue-50 w-24 h-24 text-center"
+                        >
+                          <Upload size={18} className="mb-1 text-blue-400" />
+                          <span className="text-[10px] leading-tight">Upload Logo Tengah</span>
+                          <input 
+                            id="watermark-upload"
+                            type="file" 
+                            className="hidden" 
+                            accept="image/*" 
+                            onChange={handleWatermarkUpload} 
+                          />
+                        </label>
+                      )}
+                      
+                      <div className="flex-1">
+                        <p className="text-xs text-gray-500 mb-2">
+                          Upload logo perusahaan untuk ditampilkan transparan di tengah setiap halaman (Watermark).
+                        </p>
+                      </div>
+                  </div>
+
+                  {/* Settings Sliders */}
+                  {data.watermarkImage && (
+                    <div className="space-y-4 pt-2">
+                        {/* Opacity Slider */}
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-xs font-medium text-gray-700">
+                            <span>Transparansi (Opacity)</span>
+                            <span>{data.watermarkOpacity}%</span>
+                          </div>
+                          <input 
+                            type="range" 
+                            min="0" 
+                            max="100" 
+                            step="1"
+                            value={data.watermarkOpacity}
+                            onChange={(e) => updateField('watermarkOpacity', Number(e.target.value))}
+                            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                          />
+                        </div>
+                        
+                        {/* Scale Slider */}
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-xs font-medium text-gray-700">
+                            <span>Ukuran (Scale)</span>
+                            <span>{data.watermarkScale}%</span>
+                          </div>
+                          <input 
+                            type="range" 
+                            min="10" 
+                            max="150" 
+                            step="1"
+                            value={data.watermarkScale}
+                            onChange={(e) => updateField('watermarkScale', Number(e.target.value))}
+                            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                          />
+                        </div>
+
+                        {/* Horizontal Position Slider (X) */}
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-xs font-medium text-gray-700">
+                            <span>Posisi Horizontal (X)</span>
+                            <span>{data.watermarkX}</span>
+                          </div>
+                          <input 
+                            type="range" 
+                            min="-100" 
+                            max="100" 
+                            step="1"
+                            value={data.watermarkX || 0}
+                            onChange={(e) => updateField('watermarkX', Number(e.target.value))}
+                            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                          />
+                        </div>
+
+                        {/* Vertical Position Slider (Y) */}
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-xs font-medium text-gray-700">
+                            <span>Posisi Vertikal (Y)</span>
+                            <span>{data.watermarkY}</span>
+                          </div>
+                          <input 
+                            type="range" 
+                            min="-100" 
+                            max="100" 
+                            step="1"
+                            value={data.watermarkY || 0}
+                            onChange={(e) => updateField('watermarkY', Number(e.target.value))}
+                            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                          />
+                        </div>
+                    </div>
+                  )}
+                </div>
+            </div>
+            
+            <hr className="border-gray-100" />
+
+            {/* Signer Info Fields (NEW) */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Nama Penanda Tangan</label>
+                <input
+                  type="text"
+                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"
+                  value={data.signerName || ''}
+                  onChange={(e) => updateField('signerName', e.target.value)}
+                  placeholder="Nama Lengkap"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Jabatan</label>
+                <input
+                  type="text"
+                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"
+                  value={data.signerTitle || ''}
+                  onChange={(e) => updateField('signerTitle', e.target.value)}
+                  placeholder="Manager / Admin"
+                />
+              </div>
+            </div>
+
+            {/* Existing TTD */}
+            <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Tanda Tangan</label>
+                <TTDUpload 
+                  signatureImage={data.signatureImage}
+                  onSignatureChange={(val) => updateField('signatureImage', val)}
                 />
             </div>
+
+            {/* Existing Stamp */}
+            <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Upload Stempel (Opsional)</label>
+                <div className="flex items-center gap-4">
+                  {data.stampImage ? (
+                    <div className="relative group w-24 h-24 border rounded-lg overflow-hidden flex items-center justify-center bg-gray-50">
+                      <img src={data.stampImage} alt="Stamp" className="max-w-full max-h-full object-contain" />
+                      <button 
+                        onClick={() => updateField('stampImage', null)}
+                        className="absolute inset-0 bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X size={20} />
+                      </button>
+                    </div>
+                  ) : (
+                    <label 
+                      htmlFor="stamp-upload"
+                      className="cursor-pointer border-2 border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center text-gray-500 hover:bg-gray-50 w-full sm:w-auto min-w-[150px]"
+                    >
+                      <Upload size={20} className="mb-2" />
+                      <span className="text-xs">Upload Stempel</span>
+                      <input 
+                        id="stamp-upload"
+                        type="file" 
+                        className="hidden" 
+                        accept="image/*" 
+                        onChange={handleStampUpload} 
+                      />
+                    </label>
+                  )}
+                  {data.stampImage && (
+                    <div className="text-sm text-gray-500">
+                      Stempel berhasil diupload.
+                    </div>
+                  )}
+                </div>
+            </div>
+
+            {/* Existing Color Picker */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Warna Nuansa Invoice</label>
+              <div className="flex gap-2">
+                  {['#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#6366F1', '#1F2937'].map(color => (
+                    <button
+                      key={color}
+                      onClick={() => updateField('primaryColor', color)}
+                      className={`w-8 h-8 rounded-full border-2 ${data.primaryColor === color ? 'border-gray-800 scale-110' : 'border-transparent'}`}
+                      style={{ backgroundColor: color }}
+                    />
+                  ))}
+                  <input 
+                    type="color"
+                    value={data.primaryColor}
+                    onChange={(e) => updateField('primaryColor', e.target.value)}
+                    className="w-8 h-8 rounded overflow-hidden cursor-pointer"
+                  />
+              </div>
+            </div>
           </div>
+        )}
+      </div>
+
+      {/* --- MODALS --- */}
+
+      {/* 1. SAVE MODAL (Input) */}
+      <Modal
+        isOpen={saveModalOpen}
+        onClose={() => setSaveModalOpen(false)}
+        title="Simpan Riwayat"
+        footer={
+          <>
+            <button 
+              onClick={() => setSaveModalOpen(false)}
+              className="px-4 py-2 text-gray-600 font-medium hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              Batal
+            </button>
+            <button 
+              onClick={confirmSaveSnapshot}
+              className="px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Simpan
+            </button>
+          </>
+        }
+      >
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-gray-700">Nama Penyimpanan</label>
+          <input
+            type="text"
+            className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"
+            value={saveTitle}
+            onChange={(e) => setSaveTitle(e.target.value)}
+            placeholder="Contoh: Invoice PT Maju - Jan 2024"
+            autoFocus
+          />
+          <p className="text-xs text-gray-500">
+            Beri nama yang mudah dikenali agar mudah dicari nanti.
+          </p>
         </div>
-      )}
-      
+      </Modal>
+
+      {/* 2. LOAD CONFIRMATION MODAL */}
+      <Modal
+        isOpen={loadConfirmOpen}
+        onClose={() => setLoadConfirmOpen(false)}
+        title="Buka Riwayat"
+        footer={
+          <>
+            <button 
+              onClick={() => setLoadConfirmOpen(false)}
+              className="px-4 py-2 text-gray-600 font-medium hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              Batal
+            </button>
+            <button 
+              onClick={confirmLoadSnapshot}
+              className="px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Buka & Timpa
+            </button>
+          </>
+        }
+      >
+        <div className="flex gap-3 items-start text-gray-600">
+            <AlertTriangle className="text-yellow-500 flex-shrink-0" size={24} />
+            <div className="space-y-1">
+              <p className="font-medium text-gray-800">
+                 Timpa data saat ini dengan "{selectedSnapshot?.title}"?
+              </p>
+              <p className="text-sm">
+                Data yang sedang Anda edit sekarang akan hilang jika belum disimpan. Pastikan Anda sudah menyimpannya terlebih dahulu.
+              </p>
+            </div>
+        </div>
+      </Modal>
+
+      {/* 3. DELETE CONFIRMATION MODAL */}
+      <Modal
+        isOpen={deleteConfirmOpen}
+        onClose={() => setDeleteConfirmOpen(false)}
+        title="Hapus Riwayat"
+        footer={
+          <>
+            <button 
+              onClick={() => setDeleteConfirmOpen(false)}
+              className="px-4 py-2 text-gray-600 font-medium hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              Batal
+            </button>
+            <button 
+              onClick={confirmDeleteSnapshot}
+              className="px-4 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors"
+            >
+              Hapus
+            </button>
+          </>
+        }
+      >
+        <p className="text-gray-600">
+          Apakah Anda yakin ingin menghapus riwayat penyimpanan ini? Tindakan ini tidak dapat dibatalkan.
+        </p>
+      </Modal>
+
     </div>
   );
 };

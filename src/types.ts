@@ -61,3 +61,10 @@ export interface InvoiceData {
   watermarkX: number; // -100 to 100 (Horizontal Position)
   watermarkY: number; // -100 to 100 (Vertical Position)
 }
+
+export interface SavedInvoice {
+  id: string;
+  title: string;
+  timestamp: number;
+  data: InvoiceData;
+}
