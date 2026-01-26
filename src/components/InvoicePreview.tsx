@@ -14,12 +14,22 @@ const CONTENT_HEIGHT = A4_HEIGHT - (PADDING * 2); // Usable height ~1043px
 // Estimated heights for layout logic
 const HEADER_HEIGHT = 300; 
 const TABLE_HEADER_HEIGHT = 45; 
-const ROW_HEIGHT = 55; 
-const FOOTER_HEIGHT = 450; 
+const ROW_HEIGHT = 35; 
 
 const InvoicePreview: React.FC<InvoicePreviewProps> = ({ data, previewRef }) => {
   const [scale, setScale] = useState(1);
+  const [footerHeight, setFooterHeight] = useState(450); // Dynamic footer height
   const containerRef = useRef<HTMLDivElement>(null);
+  const footerRef = useRef<HTMLDivElement>(null);
+
+  // Measure footer height dynamically
+  useEffect(() => {
+    if (footerRef.current) {
+      const measuredHeight = footerRef.current.offsetHeight;
+      // Add some padding buffer (20px) to prevent tight fitting
+      setFooterHeight(measuredHeight + 20);
+    }
+  }, [data, data.footerNote, data.taxSettings, data.amountPaid, data.signatureImage, data.stampImage]);
 
   // Auto-scale logic for mobile devices
   useEffect(() => {
@@ -51,46 +61,60 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({ data, previewRef }) => 
     };
   }, []);
 
-  // Pagination Logic
+  // Pagination Logic (FIXED - Separate table and footer logic)
   const pages = useMemo(() => {
-    const _pages: { items: InvoiceItem[], type: 'first' | 'middle' | 'last' | 'single' }[] = [];
+    const _pages: { 
+      items: InvoiceItem[], 
+      type: 'first' | 'middle' | 'last' | 'single',
+      showFooter: boolean 
+    }[] = [];
     let remainingItems = [...data.items];
     
     if (remainingItems.length === 0) {
-      return [{ items: [], type: 'single' }];
+      return [{ items: [], type: 'single', showFooter: true }];
     }
 
-    let firstPageAvailableHeight = CONTENT_HEIGHT - HEADER_HEIGHT - TABLE_HEADER_HEIGHT;
     let currentPageItems: InvoiceItem[] = [];
     let currentHeight = 0;
     
     // --- PAGE 1 Processing ---
+    // Available height for items ONLY (without reserving footer space yet)
+    const firstPageAvailableHeight = CONTENT_HEIGHT - HEADER_HEIGHT - TABLE_HEADER_HEIGHT;
+    
     while (remainingItems.length > 0) {
-      const item = remainingItems[0];
       if (currentHeight + ROW_HEIGHT > firstPageAvailableHeight) break;
-      currentPageItems.push(item);
+      currentPageItems.push(remainingItems[0]);
       currentHeight += ROW_HEIGHT;
       remainingItems.shift();
     }
 
+    // Check if footer fits on first page after items
+    const spaceLeftOnFirstPage = firstPageAvailableHeight - currentHeight;
+    const footerFitsOnFirstPage = spaceLeftOnFirstPage >= footerHeight;
+
+    // If all items fit on first page
     if (remainingItems.length === 0) {
-      if (currentHeight + FOOTER_HEIGHT <= firstPageAvailableHeight) {
-        _pages.push({ items: currentPageItems, type: 'single' });
-        return _pages;
+      if (footerFitsOnFirstPage) {
+        // Everything fits on one page
+        _pages.push({ items: currentPageItems, type: 'single', showFooter: true });
       } else {
-        _pages.push({ items: currentPageItems, type: 'first' });
-        _pages.push({ items: [], type: 'last' }); 
-        return _pages;
+        // Items fit, but footer needs next page
+        _pages.push({ items: currentPageItems, type: 'first', showFooter: false });
+        _pages.push({ items: [], type: 'last', showFooter: true });
       }
+      return _pages;
     } else {
-      _pages.push({ items: currentPageItems, type: 'first' });
+      // Items overflow to next page
+      _pages.push({ items: currentPageItems, type: 'first', showFooter: false });
     }
 
     // --- MIDDLE / LAST PAGES Processing ---
     while (remainingItems.length > 0) {
       currentPageItems = [];
       currentHeight = 0;
-      const pageAvailableHeight = CONTENT_HEIGHT; 
+      
+      // For subsequent pages: use full content height for items
+      const pageAvailableHeight = CONTENT_HEIGHT;
 
       while (remainingItems.length > 0) {
         if (currentHeight + ROW_HEIGHT > pageAvailableHeight) break;
@@ -99,19 +123,28 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({ data, previewRef }) => 
         remainingItems.shift();
       }
 
+      // Check if footer fits on this page after items
+      const spaceLeft = pageAvailableHeight - currentHeight;
+      const footerFits = spaceLeft >= footerHeight;
+
+      // Determine if this is the last batch of items
       if (remainingItems.length === 0) {
-        if (currentHeight + FOOTER_HEIGHT <= pageAvailableHeight) {
-          _pages.push({ items: currentPageItems, type: 'last' });
+        if (footerFits) {
+          // Last items + footer fit together
+          _pages.push({ items: currentPageItems, type: 'last', showFooter: true });
         } else {
-          _pages.push({ items: currentPageItems, type: 'middle' });
-          _pages.push({ items: [], type: 'last' });
+          // Last items fill page, footer on next page
+          _pages.push({ items: currentPageItems, type: 'middle', showFooter: false });
+          _pages.push({ items: [], type: 'last', showFooter: true });
         }
       } else {
-        _pages.push({ items: currentPageItems, type: 'middle' });
+        // More items coming, no footer yet
+        _pages.push({ items: currentPageItems, type: 'middle', showFooter: false });
       }
     }
+    
     return _pages;
-  }, [data.items]);
+  }, [data.items, footerHeight]);
 
   // Calculations
   const subtotal = data.items.reduce((acc, item) => acc + (item.qty * item.price), 0);
@@ -132,7 +165,7 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({ data, previewRef }) => 
   // --- Subcomponents ---
 
   const PageHeader = () => (
-    <div className="flex justify-between items-start mb-6 relative z-10 h-[210px]"> 
+    <div className="flex justify-between items-start mb-1 relative z-10 h-[210px]"> 
       <div>
         <h1 className="text-3xl font-bold mb-2" style={{ color: data.primaryColor }}>{data.companyName || 'Nama Perusahaan'}</h1>
         <div className="text-sm text-gray-500 whitespace-pre-line max-w-[350px] leading-tight">
@@ -145,7 +178,9 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({ data, previewRef }) => 
         </div>
       </div>
       <div className="text-right">
-          <h2 className="text-4xl font-bold uppercase tracking-wide mb-2" style={{ color: data.primaryColor }}>INVOICE</h2>
+          <h2 className="text-4xl font-bold uppercase tracking-wide mb-2" style={{ color: data.primaryColor }}>
+            {data.invoiceTitle || 'INVOICE'}
+          </h2>
           <div className="text-sm text-gray-600">
             <span className="font-semibold">No:</span> {data.invoiceNumber || 'INV/000'}
           </div>
@@ -204,7 +239,7 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({ data, previewRef }) => 
   );
 
   const InvoiceFooter = () => (
-    <div className="mt-auto pt-4">
+    <div className="pt-4" ref={footerRef}>
       {/* Totals */}
       <div className="flex justify-end mb-6 relative z-10">
           <div className="w-1/2 space-y-2">
@@ -297,7 +332,6 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({ data, previewRef }) => 
     <div 
       id="preview-container"
       ref={containerRef}
-      // UPDATE: Removed bg-gray-100 and padding on mobile to remove "excessive container"
       className="w-full md:bg-gray-100 md:rounded-xl md:border md:border-gray-200 p-0 md:p-6 flex flex-col items-center overflow-hidden md:overflow-auto min-h-[500px]"
     >
       <div 
@@ -312,7 +346,7 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({ data, previewRef }) => 
         
         {pages.map((page, index) => {
           const isFirst = index === 0;
-          const isLast = index === pages.length - 1;
+          const isLast = page.type === 'last' || page.type === 'single';
           
           return (
             <div 
@@ -349,36 +383,33 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({ data, previewRef }) => 
               
               {/* Content Wrapper (z-10 to stay above watermark) */}
               <div className="relative z-10 flex flex-col h-full">
-                <div>
+                <div className="flex-shrink-0">
                     {isFirst && <PageHeader />}
                     {isFirst && <ClientInfo />}
 
                     <div className="mb-4">
-                    {isFirst && <TableHeader />}
-                    <div className="flex flex-col border-b border-gray-200">
-                        {page.items.map((item) => (
-                        <ItemRow key={item.id} item={item} />
-                        ))}
-                        {page.items.length === 0 && isFirst && (
-                        <div className="py-8 text-center text-gray-400 italic">Belum ada item</div>
-                        )}
-                    </div>
+                      {isFirst && <TableHeader />}
+                      <div className="flex flex-col border-b border-gray-200">
+                          {page.items.map((item) => (
+                            <ItemRow key={item.id} item={item} />
+                          ))}
+                          {page.items.length === 0 && isFirst && (
+                            <div className="py-8 text-center text-gray-400 italic">Belum ada item</div>
+                          )}
+                      </div>
                     </div>
                 </div>
                 
                 {isLast && isPaid && (
                     <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none z-0">
-                    <div className="border-8 border-green-500 text-green-500 text-9xl font-black opacity-20 -rotate-45 p-4 rounded-xl tracking-widest">
-                        LUNAS
-                    </div>
+                      <div className="border-8 border-green-500 text-green-500 text-9xl font-black opacity-20 -rotate-45 p-4 rounded-xl tracking-widest">
+                          LUNAS
+                      </div>
                     </div>
                 )}
 
-                {isLast ? (
-                    <InvoiceFooter />
-                ) : (
-                    <div className="mt-auto"></div>
-                )}
+                {/* FIXED: Footer only shows when showFooter is true */}
+                {page.showFooter && <InvoiceFooter />}
               </div>
 
               <div className="absolute bottom-4 right-8 text-xs text-gray-400">

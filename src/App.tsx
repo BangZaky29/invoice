@@ -16,6 +16,7 @@ const DEFAULT_INVOICE_DATA: InvoiceData = {
   companyPhone: '',
   companyEmail: '',
   companyWebsite: '',
+  invoiceTitle: 'INVOICE',
   invoiceNumber: 'INV/2024/001',
   invoiceDate: new Date().toISOString().split('T')[0],
   clientName: '',

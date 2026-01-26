@@ -22,6 +22,7 @@ export interface InvoiceData {
   companyWebsite?: string; // Added
   
   // Invoice Details
+  invoiceTitle: string;    // Added for custom heading (Default: INVOICE)
   invoiceNumber: string;
   invoiceDate: string;
   
