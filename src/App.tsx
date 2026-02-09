@@ -7,9 +7,14 @@ import MobileActionButton from './components/MobileActionButton';
 import Toast, { ToastType } from './components/Toast';
 import Modal from './components/Modal';
 import { InvoiceData } from './types';
+import SubscriptionGuard from './components/SubscriptionGuard';
+
+// ... existing imports ...
+
 import { loadFromLocalStorage, saveToLocalStorage, clearLocalStorage } from './utils/localStorage';
 
 // Definisikan Default Data di luar komponen agar bisa dipakai untuk Reset
+
 const DEFAULT_INVOICE_DATA: InvoiceData = {
   companyName: '',
   companyAddress: '',
@@ -48,8 +53,8 @@ const DEFAULT_INVOICE_DATA: InvoiceData = {
 };
 
 const App: React.FC = () => {
-  const previewRef = useRef<HTMLDivElement>(null);
-  
+  const previewRef = useRef<HTMLDivElement>(null!);
+
   // Mobile View State ('form' or 'preview')
   const [mobileView, setMobileView] = useState<'form' | 'preview'>('form');
   const [toast, setToast] = useState<{ show: boolean, message: string, type: ToastType }>({ show: false, message: '', type: 'success' });
@@ -102,93 +107,95 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
-      <Header />
-      
-      <main className="flex-grow container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex flex-col lg:flex-row gap-8 items-start">
-          
-          {/* Left Column: Form Input */}
-          <div className={`w-full lg:w-[450px] flex-shrink-0 ${mobileView === 'preview' ? 'hidden lg:block' : 'block'}`}>
-            <FormInput 
-              data={invoiceData} 
-              onChange={setInvoiceData} 
-              onSave={handleManualSave}
-              onReset={() => setIsResetModalOpen(true)}
-              onToast={showToast}
-            />
-          </div>
+    <SubscriptionGuard featureSlug="invoice">
+      <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
+        <Header />
 
-          {/* Right Column: Preview */}
-          <div className={`flex-grow w-full flex flex-col items-center ${mobileView === 'form' ? 'hidden lg:flex' : 'flex'}`}>
-            {/* Toolbar */}
-            <div className="w-full max-w-[794px] mb-4 flex justify-between items-center">
-              <h2 className="text-lg font-semibold text-gray-700">Preview Invoice</h2>
-              <DownloadPDFButton 
-                targetRef={previewRef} 
-                fileName={`Invoice-${invoiceData.invoiceNumber.replace(/\//g, '-')}`}
-                onSuccess={handleDownloadSuccess}
-                onError={handleDownloadError}
+        <main className="flex-grow container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex flex-col lg:flex-row gap-8 items-start">
+
+            {/* Left Column: Form Input */}
+            <div className={`w-full lg:w-[450px] flex-shrink-0 ${mobileView === 'preview' ? 'hidden lg:block' : 'block'}`}>
+              <FormInput
+                data={invoiceData}
+                onChange={setInvoiceData}
+                onSave={handleManualSave}
+                onReset={() => setIsResetModalOpen(true)}
+                onToast={showToast}
               />
             </div>
 
-            {/* Preview Component */}
-            <InvoicePreview data={invoiceData} previewRef={previewRef} />
+            {/* Right Column: Preview */}
+            <div className={`flex-grow w-full flex flex-col items-center ${mobileView === 'form' ? 'hidden lg:flex' : 'flex'}`}>
+              {/* Toolbar */}
+              <div className="w-full max-w-[794px] mb-4 flex justify-between items-center">
+                <h2 className="text-lg font-semibold text-gray-700">Preview Invoice</h2>
+                <DownloadPDFButton
+                  targetRef={previewRef}
+                  fileName={`Invoice-${invoiceData.invoiceNumber.replace(/\//g, '-')}`}
+                  onSuccess={handleDownloadSuccess}
+                  onError={handleDownloadError}
+                />
+              </div>
+
+              {/* Preview Component */}
+              <InvoicePreview data={invoiceData} previewRef={previewRef} />
+            </div>
           </div>
-        </div>
-      </main>
+        </main>
 
-      {/* Floating Action Button for Mobile */}
-      <MobileActionButton currentView={mobileView} onToggle={toggleMobileView} />
+        {/* Floating Action Button for Mobile */}
+        <MobileActionButton currentView={mobileView} onToggle={toggleMobileView} />
 
-      {/* Mobile Download FAB (Only in preview mode) */}
-      {mobileView === 'preview' && (
-        <div className="fixed bottom-24 right-6 lg:hidden z-50">
-           <DownloadPDFButton 
-              targetRef={previewRef} 
-              fileName={`Invoice-${invoiceData.invoiceNumber.replace(/\//g, '-')}`} 
+        {/* Mobile Download FAB (Only in preview mode) */}
+        {mobileView === 'preview' && (
+          <div className="fixed bottom-24 right-6 lg:hidden z-50">
+            <DownloadPDFButton
+              targetRef={previewRef}
+              fileName={`Invoice-${invoiceData.invoiceNumber.replace(/\//g, '-')}`}
               onSuccess={handleDownloadSuccess}
               onError={handleDownloadError}
               variant="fab"
-           />
-        </div>
-      )}
+            />
+          </div>
+        )}
 
-      {/* Toast Notification */}
-      <Toast 
-        message={toast.message} 
-        type={toast.type}
-        isVisible={toast.show} 
-        onClose={() => setToast({ ...toast, show: false })} 
-      />
+        {/* Toast Notification */}
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          isVisible={toast.show}
+          onClose={() => setToast({ ...toast, show: false })}
+        />
 
-      {/* Reset Confirmation Modal */}
-      <Modal
-        isOpen={isResetModalOpen}
-        onClose={() => setIsResetModalOpen(false)}
-        title="Reset Formulir"
-        footer={
-          <>
-            <button 
-              onClick={() => setIsResetModalOpen(false)}
-              className="px-4 py-2 text-gray-600 font-medium hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              Batal
-            </button>
-            <button 
-              onClick={confirmReset}
-              className="px-4 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors"
-            >
-              Ya, Reset Data
-            </button>
-          </>
-        }
-      >
-        <p className="text-gray-600">
-          Apakah Anda yakin ingin mereset formulir? Semua data yang belum disimpan akan hilang dan kembali ke pengaturan awal.
-        </p>
-      </Modal>
-    </div>
+        {/* Reset Confirmation Modal */}
+        <Modal
+          isOpen={isResetModalOpen}
+          onClose={() => setIsResetModalOpen(false)}
+          title="Reset Formulir"
+          footer={
+            <>
+              <button
+                onClick={() => setIsResetModalOpen(false)}
+                className="px-4 py-2 text-gray-600 font-medium hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                Batal
+              </button>
+              <button
+                onClick={confirmReset}
+                className="px-4 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors"
+              >
+                Ya, Reset Data
+              </button>
+            </>
+          }
+        >
+          <p className="text-gray-600">
+            Apakah Anda yakin ingin mereset formulir? Semua data yang belum disimpan akan hilang dan kembali ke pengaturan awal.
+          </p>
+        </Modal>
+      </div>
+    </SubscriptionGuard>
   );
 };
 
